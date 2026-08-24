@@ -25,15 +25,36 @@ A centralized monitoring system with three components:
 ## 🚀 Run it (3 terminals)
 
 ### 1. Backend (port 8000)
+
+**Option A — one command (recommended):**
+```powershell
+.\backend\run.ps1
+```
+The script auto-creates `.venv` if missing, activates it, installs `requirements.txt` only when packages are absent, and starts uvicorn with `--reload` — no manual activation ever needed.
+
+**Option B — VS Code:** open the repo in VS Code and press **F5** ("DRISHTI Backend" launch config). The workspace is preconfigured to always use `backend\.venv` — no manual activation.
+
+**Option C — manual:**
 ```bash
 cd backend
-python -m venv .venv
-.venv\Scripts\activate            # Windows
-pip install -r requirements.txt
-python seed.py                    # creates demo data
+python -m venv .venv                 # only if .venv doesn't exist yet
+.\.venv\Scripts\activate             # Windows  (source .venv/bin/activate on Linux/macOS)
+python -m pip install -r requirements.txt
+python seed.py                       # creates demo data
 python -m uvicorn main:app --reload --port 8000
 ```
 Interactive API docs: http://localhost:8000/docs
+
+> **Tip:** prefer `python -m pip ...` over bare `pip`. Module-style invocation uses the interpreter directly and can never hit broken hardcoded paths inside venv launcher executables.
+
+#### 🛠️ Backend venv troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `Fatal error in launcher: Unable to create process using '"D:\...old path...\pip.exe"'` | venv was moved/copied; `.exe` launchers embed an absolute python path from creation time | `python -m pip install --upgrade --force-reinstall pip` (regenerates launchers) |
+| `Unable to copy '...\venvlauncher.exe' to '.venv\Scripts\python.exe'` when creating a venv | a process is running from the venv (can't overwrite a running `python.exe`) or antivirus lock | stop all processes using `.venv`, close editors/terminals holding it, then retry |
+| `[WinError 10013]` on uvicorn startup | port 8000 already held by a stale server instance (`Get-NetTCPConnection -LocalPort 8000`) | kill the holder: `Stop-Process -Id <PID> -Force`, then relaunch |
+| Rebuilding from scratch | — | stop all processes → `Remove-Item -Recurse -Force .venv` → `python -m venv .venv` |
 
 ### 2. Dashboard (port 5173)
 ```bash
@@ -90,6 +111,8 @@ cd mobile/drishti_app && flutter analyze && flutter test
 
 ```
 backend/    FastAPI app, models, JWT auth, AI engine, seeder, e2e test
+backend/run.ps1  one-command backend launcher (auto venv + deps + uvicorn)
+.vscode/    workspace settings: F5 launch config, auto-activated .venv
 dashboard/  React dashboard (map, CCTV grid, alerts, reports)
 mobile/     Flutter field app (tasks, capture evidence, VC)
 docs/       SIH presentation + build plan
