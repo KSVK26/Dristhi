@@ -8,6 +8,7 @@
 //   - Android emulator -> use http://10.0.2.2:8000  (emulator's "localhost")
 //   - Physical phone   -> use your PC's WiFi IP, e.g. http://192.168.1.10:8000
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,8 +16,12 @@ import 'dart:convert';
 
 import 'tasks_screen.dart';
 
-// CHANGE THIS to your PC's LAN IP when testing on a real phone:
-const String kApiBase = 'http://10.0.2.2:8000'; // Android emulator default
+// Backend URL per platform:
+//   Web (Chrome/Edge)  -> localhost works directly
+//   Android EMULATOR   -> 10.0.2.2 is the emulator's alias for your PC
+//   Physical phone     -> replace with your PC's WiFi IP, e.g. 192.168.1.10
+final String kApiBase =
+    kIsWeb ? 'http://localhost:8000' : 'http://10.0.2.2:8000';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

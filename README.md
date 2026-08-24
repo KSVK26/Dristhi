@@ -44,14 +44,21 @@ npm run dev
 Open http://localhost:5173 — login `admin / admin123`
 
 ### 3. Flutter field app
+
+**Option A — run in a browser (no Android SDK needed):**
 ```bash
 cd mobile/drishti_app
-flutter pub get
-flutter run                       # needs an emulator or USB phone
+flutter build web --release
+python -m http.server 5174 --directory build/web
+```
+Open http://localhost:5174 — login `ravi / inspector123`
+
+**Option B — run on Android** (requires Android Studio / SDK):
+```bash
+flutter run                       # emulator or USB phone
 ```
 - Android emulator: backend URL is already `http://10.0.2.2:8000`
 - Physical phone: edit `kApiBase` in `lib/main.dart` to your PC's WiFi IP
-- Login as inspector: `ravi / inspector123`
 
 ## 🎬 2-minute demo script
 
