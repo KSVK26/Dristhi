@@ -1,0 +1,156 @@
+/* ============ DRISHTI Dashboard styles ============ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  background: #f0f2f5;
+  color: #1c2733;
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid #cfd8dc;
+  background: #fff;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 14px;
+}
+button:hover { background: #eceff1; }
+button.primary { background: #1565c0; color: #fff; border-color: #1565c0; }
+button.primary:hover { background: #0d47a1; }
+
+.muted { color: #78909c; font-size: 13px; }
+.error { color: #c62828; margin-top: 8px; }
+
+/* ---------- login ---------- */
+.login-wrap {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #0d2137, #143a5e);
+}
+.login-card {
+  width: 360px; background: #fff; border-radius: 14px; padding: 32px;
+  display: flex; flex-direction: column; gap: 10px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.35);
+}
+.login-logo { font-size: 44px; text-align: center; }
+.login-card h1 { text-align: center; letter-spacing: 4px; color: #0d2137; }
+.login-card label { font-size: 13px; font-weight: 600; margin-top: 6px; }
+.login-card input {
+  padding: 10px; border: 1px solid #b0bec5; border-radius: 6px; font-size: 15px;
+}
+.login-card button { margin-top: 12px; padding: 12px; font-weight: 700; }
+.hint {
+  margin-top: 16px; background: #f5f7fa; border-radius: 8px; padding: 10px;
+  display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #546e7a;
+}
+
+/* ---------- top bar ---------- */
+.app { height: 100vh; display: flex; flex-direction: column; }
+.topbar {
+  background: #0d2137; color: #fff; display: flex; align-items: center;
+  gap: 24px; padding: 10px 20px;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.logo { font-size: 30px; }
+.brand h1 { font-size: 20px; letter-spacing: 3px; }
+.brand small { color: #90caf9; }
+.topbar nav { display: flex; gap: 6px; flex: 1; }
+.tab {
+  background: transparent; color: #b0bec5; border: none; padding: 10px 14px;
+  border-radius: 8px; font-size: 14px;
+}
+.tab.active { background: #1976d2; color: #fff; }
+.userbox { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.userbox small { color: #90caf9; }
+
+main { flex: 1; overflow: auto; padding: 16px 20px; }
+
+/* ---------- map view ---------- */
+.map-layout { display: flex; gap: 16px; height: calc(100vh - 76px); }
+.map-side { flex: 1.6; display: flex; flex-direction: column; gap: 10px; position: relative; }
+.toolbar { display: flex; align-items: center; gap: 14px; }
+.leaflet-map { flex: 1; border-radius: 12px; z-index: 0; }
+.panel {
+  flex: 1; background: #fff; border-radius: 12px; padding: 18px;
+  overflow-y: auto; box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+.panel h2 { font-size: 18px; margin-bottom: 4px; }
+.panel h3 { font-size: 14px; margin: 14px 0 6px; }
+.risk-badge {
+  display: inline-block; margin: 10px 0; padding: 6px 12px; border-radius: 20px;
+  font-weight: 700; font-size: 13px; color: #fff;
+}
+.risk-badge.low { background: #43a047; }
+.risk-badge.mid { background: #fb8c00; }
+.risk-badge.high { background: #e53935; }
+.actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+.toast {
+  position: absolute; bottom: 16px; left: 16px; right: 16px;
+  background: #263238; color: #fff; padding: 12px 16px; border-radius: 10px;
+  font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.3); z-index: 1000;
+}
+
+/* ---------- cctv grid ---------- */
+.cctv-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 14px; margin-top: 12px;
+}
+.cctv-tile {
+  background: #000; border-radius: 12px; overflow: hidden; position: relative;
+  aspect-ratio: 16/9;
+}
+.cctv-video { width: 100%; height: 100%; object-fit: cover; }
+.cctv-label {
+  position: absolute; top: 8px; left: 8px; z-index: 5;
+  background: rgba(13,33,55,.85); color: #fff; font-size: 12px;
+  padding: 4px 10px; border-radius: 6px; display: flex; align-items: center; gap: 6px;
+}
+.live-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #ff1744;
+  animation: blink 1s infinite;
+}
+@keyframes blink { 50% { opacity: .25; } }
+.cctv-placeholder {
+  height: 100%; display: flex; flex-direction: column; gap: 8px;
+  align-items: center; justify-content: center; color: #b0bec5; padding: 16px;
+}
+.cctv-placeholder input { width: 80%; padding: 8px; border-radius: 6px; border: none; }
+
+/* ---------- alerts ---------- */
+.filters { display: flex; gap: 6px; align-items: center; }
+.chip { padding: 5px 12px; border-radius: 16px; font-size: 12px; text-transform: capitalize; }
+.chip.active { background: #1976d2; color: #fff; border-color: #1976d2; }
+.alert-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; max-width: 900px; }
+.alert-card {
+  background: #fff; border-left: 5px solid #90a4ae; border-radius: 10px;
+  padding: 12px 16px; box-shadow: 0 1px 6px rgba(0,0,0,.07);
+}
+.alert-card.sev-high { border-left-color: #e53935; }
+.alert-card.sev-medium { border-left-color: #fb8c00; }
+.alert-card.resolved { opacity: .55; }
+.alert-head { display: flex; align-items: center; gap: 10px; }
+.alert-head small { margin-left: auto; color: #90a4ae; }
+.sev-tag {
+  font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 10px; color: #fff;
+}
+.sev-tag.high { background: #e53935; }
+.sev-tag.medium { background: #fb8c00; }
+.sev-tag.low { background: #43a047; }
+.alert-card p { margin: 8px 0; font-size: 14px; }
+
+/* ---------- reports ---------- */
+.report-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 14px; }
+.report-card {
+  background: #fff; border-radius: 12px; overflow: hidden;
+  display: flex; box-shadow: 0 1px 6px rgba(0,0,0,.08);
+}
+.report-photo {
+  width: 160px; object-fit: cover; cursor: pointer; background: #eceff1;
+}
+.report-body { padding: 12px 14px; flex: 1; }
+.report-body h3 { font-size: 15px; }
+.flags { display: flex; gap: 6px; margin: 8px 0; flex-wrap: wrap; }
+.flag { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 12px; }
+.flag.ok { background: #e8f5e9; color: #2e7d32; }
+.flag.bad { background: #ffebee; color: #c62828; }
+.checklist { list-style: none; font-size: 13px; display: flex; flex-direction: column; gap: 3px; }

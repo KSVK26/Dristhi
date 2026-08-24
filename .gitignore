@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+backend/.venv/
+backend/uploads/
+*.db
+
+# Node / React
+node_modules/
+dashboard/dist/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins*
+build/
+mobile/drishti_app/build/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Env & secrets
+.env

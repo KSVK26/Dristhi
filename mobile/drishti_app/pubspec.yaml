@@ -1,0 +1,29 @@
+name: drishti_app
+description: "DRISHTI field inspection app for PMU teams (SIH 26095)"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # --- DRISHTI dependencies (all free/open-source) ---
+  http: ^1.2.0                 # REST calls to the FastAPI backend
+  shared_preferences: ^2.3.0   # store the JWT token on the phone
+  geolocator: ^13.0.0          # GPS position for geo-tagged evidence
+  image_picker: ^1.1.0         # camera photo capture
+  flutter_map: ^7.0.0          # OpenStreetMap widgets (free, no API key)
+  latlong2: ^0.9.0             # LatLng helper used by flutter_map
+  url_launcher: ^6.3.0         # open the Jitsi surprise-VC link
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true

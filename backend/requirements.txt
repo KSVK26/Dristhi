@@ -1,0 +1,9 @@
+# DRISHTI backend dependencies (all free & open-source)
+fastapi
+uvicorn
+sqlalchemy
+pyjwt
+scikit-learn
+opencv-python-headless<5
+pillow
+python-multipart
