@@ -1,7 +1,7 @@
-// DRISHTI Field App - Notifications screen
-// -----------------------------------------
-// Lists unread notifications (assignments, surprise-VC alerts) — the same
-// feed the dashboard bell shows. Mark read per item or all at once.
+// DRISHTI Field App - Alerts tab content (unread notifications)
+// --------------------------------------------------------------
+// Rendered inside the app shell's bottom-navigation. Mark read per
+// item or all at once; auto-refreshes every 15 s.
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -12,7 +12,8 @@ import 'dart:convert';
 import 'main.dart'; // kApiBase
 
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({super.key});
+  const NotificationsScreen({super.key, this.refreshSignal = 0});
+  final int refreshSignal;
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
@@ -27,6 +28,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     super.initState();
     _load();
     _timer = Timer.periodic(const Duration(seconds: 15), (_) => _load());
+  }
+
+  @override
+  void didUpdateWidget(covariant NotificationsScreen old) {
+    super.didUpdateWidget(old);
+    if (old.refreshSignal != widget.refreshSignal) _load();
   }
 
   @override
@@ -74,51 +81,57 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Notifications (${items.length} unread)'),
-        actions: [
+    // Tab content — the app shell provides the Scaffold + bottom nav.
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 0),
+        child: Row(children: [
+          Text('Alerts (${items.length} unread)',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Spacer(),
           TextButton(
             onPressed: (busy || items.isEmpty) ? null : _markAll,
             child: const Text('Mark all read'),
           ),
-        ],
+        ]),
       ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: items.isEmpty
-            ? const Center(
-                child: Text('🎉 All caught up — no unread notifications.'))
-            : ListView.builder(
-                padding: const EdgeInsets.all(12),
-                itemCount: items.length,
-                itemBuilder: (_, i) {
-                  final n = items[i];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        radius: 5,
-                        backgroundColor: _sevColor(n['severity']),
+      Expanded(
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: items.isEmpty
+              ? const Center(
+                  child: Text('🎉 All caught up — no unread notifications.'))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: items.length,
+                  itemBuilder: (_, i) {
+                    final n = items[i];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          radius: 5,
+                          backgroundColor: _sevColor(n['severity']),
+                        ),
+                        title: Text(
+                          n['message'],
+                          style: const TextStyle(fontSize: 13.5),
+                        ),
+                        subtitle: Text(
+                          '${n['type'].toString().replaceAll('_', ' ')} · '
+                          '${n['created_at'].toString().substring(0, 16)}',
+                          style: const TextStyle(fontSize: 11.5),
+                        ),
+                        trailing: TextButton(
+                          onPressed: () => _markOne(n['id']),
+                          child: const Text('Mark read'),
+                        ),
                       ),
-                      title: Text(
-                        n['message'],
-                        style: const TextStyle(fontSize: 13.5),
-                      ),
-                      subtitle: Text(
-                        '${n['type'].toString().replaceAll('_', ' ')} · '
-                        '${n['created_at'].toString().substring(0, 16)}',
-                        style: const TextStyle(fontSize: 11.5),
-                      ),
-                      trailing: TextButton(
-                        onPressed: () => _markOne(n['id']),
-                        child: const Text('Mark read'),
-                      ),
-                    ),
-                  );
-                },
-              ),
+                    );
+                  },
+                ),
+        ),
       ),
-    );
+    ]);
   }
 }

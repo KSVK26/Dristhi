@@ -16,7 +16,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'main.dart'; // kApiBase
 import 'capture_screen.dart';
-import 'notifications_screen.dart';
 
 double _haversineKm(lat1, lng1, lat2, lng2) {
   const r = 6371.0;
@@ -28,7 +27,8 @@ double _haversineKm(lat1, lng1, lat2, lng2) {
 }
 
 class TasksScreen extends StatefulWidget {
-  const TasksScreen({super.key});
+  const TasksScreen({super.key, this.refreshSignal = 0});
+  final int refreshSignal;
   @override
   State<TasksScreen> createState() => _TasksScreenState();
 }
@@ -45,6 +45,12 @@ class _TasksScreenState extends State<TasksScreen> {
     super.initState();
     _getLocation();
     _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant TasksScreen old) {
+    super.didUpdateWidget(old);
+    if (old.refreshSignal != widget.refreshSignal) _load();
   }
 
   Future<void> _getLocation() async {
@@ -150,30 +156,6 @@ class _TasksScreenState extends State<TasksScreen> {
       appBar: AppBar(
         title: Text('My Tasks — $name'),
         actions: [
-          Stack(children: [
-            IconButton(
-              icon: const Icon(Icons.notifications_none, size: 28),
-              tooltip: 'Notifications',
-              onPressed: () async {
-                await Navigator.push(context, MaterialPageRoute(
-                    builder: (_) => const NotificationsScreen()));
-                _load();
-              },
-            ),
-            if (unread > 0)
-              Positioned(
-                right: 6, top: 6,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                      color: Colors.red, shape: BoxShape.circle),
-                  child: Text('$unread',
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 10,
-                          fontWeight: FontWeight.bold)),
-                ),
-              ),
-          ]),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
         ],
       ),

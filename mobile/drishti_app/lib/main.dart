@@ -14,7 +14,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
-import 'tasks_screen.dart';
+import 'app_shell.dart';
 
 // Backend URL per platform:
 //   Web (Chrome/Edge)  -> localhost works directly
@@ -84,7 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const TasksScreen()),
+        MaterialPageRoute(builder: (_) => const AppShell()),
       );
     } catch (e) {
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
