@@ -61,32 +61,37 @@ Platform for DoSJE** · Team name + member names.
 # SLIDE 2 — PROPOSED SOLUTION: DRISHTI
 
 ## 🖼️ On the slide (from your deck)
-- **DRISHTI — MoSJE Oversight & Web Dashboard**
-- Four capability bubbles:
-  1. **Define Policy, Monitor** — MoSJE Oversight & Web Dashboard
-  2. **Central AI Hub & Automation** — Data Process, Random Assign
-  3. **Field App & Live Feeds** — Capture Geo-Evidence, Live VC
-  4. **Analytics & Insights** — Detect Anomalies, Verify Attendance
-- **HOW IT ADDRESSES THE PROBLEM:** Eliminates Fake Reporting *(tamper-proof
-  data)* · Prevents Collusion *(random assignments)* · Overcomes Bottlenecks
-  *(efficient scalability)* · Automates Compliance *(24/7 AI auditing)*
-- **INNOVATION & UNIQUENESS:** Lightweight AI *(efficient, low-bandwidth
-  vision)* · Zero-Trust Evidence *(hardware-verified data)* · Unified Ecosystem
-  *(centralized monitoring platform)*
+Three columns:
+
+**PROPOSED SOLUTION (left)** — a top-to-bottom arrow flow of four blocks:
+1. **MoSJE Oversight & Web Dashboard** — Define Policy, Monitor
+2. **Central AI Hub & Automation** — Data Process, Random Assign
+3. **Field App & Live Feeds** — Capture Geo-Evidence, Live VC
+4. **Analytics & Insights** — Detect Anomalies, Verify Attendance
+
+**HOW IT ADDRESSES THE PROBLEM (middle):** Eliminates Fake Reporting
+*(tamper-proof data)* · Prevents Collusion *(random assignments)* · Overcomes
+Bottlenecks *(efficient scalability)* · Automates Compliance *(24/7 AI
+auditing)*
+
+**INNOVATION & UNIQUENESS (right):** Lightweight AI *(efficient, low-bandwidth
+vision)* · Zero-Trust Evidence *(hardware-verified data)* · Unified Ecosystem
+*(centralized monitoring platform)*
 
 ## 🎤 Verbatim script (~90 seconds)
 
-> "This slide is our whole solution in one view — walk through it with me.
+> "This slide is our whole solution in one view — follow the arrows on the
+> left, top to bottom.
 >
-> **At the centre is the MoSJE oversight dashboard** — that's where policy is
+> **It starts with the MoSJE oversight dashboard** — that's where policy is
 > defined and monitoring happens. Officials see every institute on a live map,
 > colour-coded by an AI risk score, with attendance charts and a live alert feed.
 >
-> **Around it, four pillars.** First, the **Central AI Hub**: it processes
-> attendance data, detects anomalies, and — this is important — *randomly
-> assigns* surprise inspections. Second, the **Field App with live feeds**: our
-> inspectors capture geo-tagged photo evidence through the app and can join
-> surprise video conferences with institute staff at any time. Third,
+> **The flow then runs through three more stages.** The **Central AI Hub**: it
+> processes attendance data, detects anomalies, and — this is important —
+> *randomly assigns* surprise inspections. The **Field App with live feeds**:
+> our inspectors capture geo-tagged photo evidence through the app and can join
+> surprise video conferences with institute staff at any time. And
 > **Analytics & Insights**: the system continuously verifies attendance and
 > detects anomalies automatically — 24 by 7.
 >
@@ -106,7 +111,8 @@ Platform for DoSJE** · Team name + member names.
 > from policy to proof."
 
 ## 🔑 Key points
-1. **Four pillars, four fraud answers** — map each bubble to a problem.
+1. **One flow, four fraud answers** — the left column is the pipeline; the
+   middle column maps each fraud to its kill-switch.
 2. The **seed** = auditable fairness. Say "replayable lottery" out loud.
 3. **Lightweight AI** = runs on ₹20k hardware, no cloud — a differentiator.
 
@@ -134,29 +140,57 @@ naming the pillar. Otherwise keep the slide up.
 # SLIDE 3 — TECHNICAL APPROACH (Methodology & Flow + Tech Stack)
 
 ## 🖼️ On the slide (from your deck)
-"TECHNICAL APPROACH — METHODOLOGY & FLOW · TECH STACK"
-(Your architecture diagram + the tech list go here.)
+"TECHNICAL APPROACH" — two panels.
 
-**Put on the slide:**
-- Flow: Field App → FastAPI (auth · AI · risk) → SQLite + evidence store →
-  Dashboard (React) — the 3.1 diagram from COMPLETE_EXPLANATION.md
-- Tech stack chips: **FastAPI · SQLite · scikit-learn · OpenCV · React ·
-  Leaflet/OSM · Recharts · hls.js · Jitsi · Flutter**
+**METHODOLOGY & FLOW (left)** — five stages, left to right:
+1. **DATA INGESTION** — Capture Project Data, CCTV, Reports & Inspection
+   Evidence
+2. **CENTRALIZED AI ENGINE** — DRISHTI Central Platform · Risk Scoring &
+   Behavior Analysis
+3. **AUTOMATED ALERT TRIGGER** — If Anomaly: Trigger Priority Alert · Else:
+   Continue Monitoring
+4. **SMART SURPRISE INSPECTION** — GPS-Based Officer Assignment · Capture
+   Tamper-Proof Photos/VC 🔒
+5. **OFFICIAL DASHBOARD ACTION** — Automated Report Generation · Dashboard
+   Routing for Follow-up
+
+**TECH STACK (right panel — still empty in the deck; paste this):**
+**FastAPI (Python)** · **SQLite → PostgreSQL** · **scikit-learn
+IsolationForest** · **OpenCV** · **React + Vite** · **Leaflet /
+OpenStreetMap** · **Recharts** · **hls.js** · **Jitsi Meet** · **Flutter** —
+all open-source · ₹0 licences · CPU-only AI
 
 ## 🎤 Verbatim script (~90 seconds)
 
-> "Here's how it actually works.
+> "Here's how it actually works — five stages, left to right.
 >
-> **The methodology is a closed loop.** An official assigns an inspection — our
-> AI picks the inspector by a seeded lottery weighted by distance and workload.
-> The inspector's phone gets the task instantly with navigation. On site, they
-> capture geo-tagged photo evidence through the app — the moment it's submitted,
-> OpenCV counts human faces in the photo: zero faces raises an automatic
-> proxy-suspicion alert. The institute's risk score is recalculated instantly,
-> and if it crosses seventy, the dashboard lights up. Officials then either
-> resolve the alert — which lowers the risk — or start a surprise video
-> conference with the institute. Evidence, alerts, and actions — all logged,
-> all attributed, all auditable.
+> **One: data ingestion.** Project data, CCTV feeds, reports and inspection
+> evidence all flow into one central platform.
+>
+> **Two: the centralized AI engine.** This is the DRISHTI backend — it runs
+> risk scoring and behaviour analysis on every institute. Concretely:
+> scikit-learn's IsolationForest watches thirty days of attendance and flags
+> anomalies, and a transparent risk formula turns every event into a
+> zero-to-hundred score.
+>
+> **Three: the automated alert trigger.** If the AI sees an anomaly, a priority
+> alert fires. If not, monitoring simply continues — twenty-four by seven, no
+> human has to watch a wall of screens.
+>
+> **Four: the smart surprise inspection.** The officer is chosen by our seeded
+> random lottery, weighted by distance and workload — nobody picks their
+> favourite inspector, and the seed is stored so the draw can be replayed and
+> proven fair. The inspector's phone gets the task instantly with navigation.
+> On site, they capture geo-tagged, tamper-proof photo evidence — the moment
+> it's submitted, OpenCV counts human faces in the photo: zero faces raises an
+> automatic proxy-suspicion flag. And a surprise video conference with the
+> institute is one tap away.
+>
+> **Five: official dashboard action.** The risk score is recalculated
+> instantly — if it crosses seventy, the dashboard lights up. Officials either
+> resolve the alert, which lowers the risk, or escalate. Reports generate
+> automatically, and follow-up is routed on the dashboard. Evidence, alerts,
+> and actions — all logged, all attributed, all auditable.
 >
 > **The stack — and why.** Backend: **FastAPI** with a **SQLite** database —
 > zero-install, and one line changes it to PostgreSQL for production scale.
@@ -170,7 +204,8 @@ naming the pillar. Otherwise keep the slide up.
 > Everything is open-source. Total software licence cost: **zero rupees**."
 
 ## 🔑 Key points
-1. **Closed loop**: assign → notify → capture → AI check → risk → resolve.
+1. **Five stages, one loop**: ingest → AI → alert → inspect → act — narrate
+   the boxes in order, pointing at each.
 2. **"One line" database migration** SQLite→PostgreSQL — scalability answer ready.
 3. **₹0 licences, offline AI** — government-friendly by design.
 
@@ -201,40 +236,66 @@ feasibility."*
 # SLIDE 5 — FEASIBILITY & VIABILITY
 
 ## 🖼️ On the slide (from your deck)
-"FEASIBILITY & VIABILITY" — add: cost table, scaling path, deployment plan.
+"FEASIBILITY & VIABILITY" — top row, three feasibility boxes:
+- **TECHNICAL FEASIBILITY:** Mature Tech & Stable Architecture
+- **OPERATIONAL FEASIBILITY:** Seamless Field Integration & Automated
+  Compliance
+- **ECONOMIC VIABILITY:** Cost-Effective Initial Development & Optimized
+  Resources
 
-**Suggested content:** Software cost ₹0 (open-source) · Pilot hardware: one
-₹20–30k server or MeghRaj cloud · Pilot: 1 state / 100 institutes · National
-scale path: PostgreSQL + object storage + load-balanced API · Deployment:
-NIC/MeghRaj on-premise, Jitsi self-hosted · Maintenance: any NIC/vendor team
-(standard stack, auto-generated API docs).
+These feed into **POTENTIAL CHALLENGES & RISKS**, then four challenge →
+mitigation pairs:
+- **Hardware Variation** → Optimized App, Rigorous Testing (Min. Specs)
+- **Connectivity Issues** → Offline Caching & Automatic Sync (Local Storage)
+- **AI Accuracy & Bias** → Human-in-the-Loop & Retraining (Continuous Learning)
+- **User Adoption** → Intuitive UI & Comprehensive Training (Simplicity)
+
+All four converge on **VIABLE SOLUTION IMPLEMENTATION**.
+
+⚠️ **Honesty flag:** the "Offline Caching & Automatic Sync" box describes a
+roadmap item, not a built feature (no offline queue in the prototype — see
+COMPLETE_EXPLANATION.md Section 11). Use the prepared answer below if a judge
+probes it.
 
 ## 🎤 Verbatim script (~60 seconds)
 
-> "Is this feasible? Three answers: technically, financially, operationally.
+> "Is this feasible? Three answers at the top of the slide.
 >
-> **Technically** — every component is proven open-source technology, and our
-> AI runs on a plain CPU: no GPUs, no cloud bills. The pilot runs on a single
-> twenty-thousand-rupee server.
+> **Technically** — every component is proven, mature open-source technology,
+> and our AI runs on a plain CPU: no GPUs, no cloud bills. The pilot runs on a
+> single twenty-thousand-rupee server.
 >
-> **Financially** — total software licence cost is zero. The only spend is one
-> modest server per state, or the government's own MeghRaj cloud. Compare that
-> to the crores lost to proxy functioning every year — the system pays for
-> itself the first time it catches one fake centre.
+> **Operationally** — seamless field integration: the app is three taps, so
+> inspectors need zero training, and institutes do nothing differently —
+> compliance checking happens automatically in the background.
 >
-> **Operationally** — inspectors need zero training; the field app is three
-> taps. Institutes do nothing differently. And because the stack is standard
-> FastAPI, React, and Flutter, any NIC team or vendor can maintain it — the API
-> documentation even generates itself.
+> **Economically** — cost-effective development, optimised resources: total
+> software licence cost is zero. The only spend is one modest server per state,
+> or the government's own MeghRaj cloud. Compare that to the crores lost to
+> proxy functioning every year — the system pays for itself the first time it
+> catches one fake centre.
 >
-> Scaling from one state to the nation is a configuration path, not a rewrite:
-> PostgreSQL for the database, object storage for photos, load-balanced API
-> servers, and the AI retrains per state."
+> Now the honest part — the challenges, and how each one is mitigated.
+> **Hardware variation**: the app is optimised for minimum specs and tested
+> rigorously across device tiers. **Connectivity**: capture-first design —
+> photos are compressed and uploaded as soon as the network allows, and full
+> offline queue-and-sync is the named next step. **AI accuracy and bias**:
+> every AI flag is a *suspicion*, never a verdict — a human reviews before any
+> action, and the model retrains as data grows. **User adoption**: an intuitive
+> three-tap interface plus a short walkthrough — designed for zero-training
+> adoption.
+>
+> That's how the arrows converge on a viable implementation. And scaling from
+> one state to the nation is a configuration path, not a rewrite: PostgreSQL
+> for the database, object storage for photos, load-balanced API servers, and
+> the AI retrains per state."
 
 ## 🔑 Key points
-1. **₹0 licences** + one cheap server per state.
-2. **Pays for itself** catching a single fake centre.
-3. **Standard stack** = maintainable by any government IT team.
+1. **₹0 licences** + one cheap server per state — pays for itself catching one
+   fake centre.
+2. **Every challenge has a named mitigation** — say them in the slide's order.
+3. **Human-in-the-loop**: AI flags suspicion, humans decide — the defensible
+   answer on AI bias.
 
 ## ⚠️ Judge questions this slide triggers
 - **"What's the timeline to deploy?"** → "Pilot in 4–6 weeks: harden auth,
@@ -244,6 +305,15 @@ NIC/MeghRaj on-premise, Jitsi self-hosted · Maintenance: any NIC/vendor team
   is role-based and audited — aligned with the DPDP Act."
 - **"Who trains the staff?"** → "Inspectors need a 10-minute walkthrough — the
   app is three taps. Designed for zero-training adoption."
+- **"Your slide says offline caching and sync — is that built?"** → "Capture is
+  already decoupled from sync — the app compresses photos and uploads as soon
+  as the network allows. Full offline queue-and-forward is the first roadmap
+  item for field rollout; we'd rather show the honest boundary than overclaim."
+- **"What if the AI flags an innocent institute?"** → "It can — that's why the
+  slide says human-in-the-loop. An AI flag only raises an institute's risk
+  score and queues a human review; no automated penalty is ever applied. And
+  the risk formula is fully transparent — we can show exactly why a score went
+  up."
 
 ## ➡️ Transition
 *"Feasible — and here's the impact it creates."*
@@ -253,33 +323,50 @@ NIC/MeghRaj on-premise, Jitsi self-hosted · Maintenance: any NIC/vendor team
 # SLIDE 6 — IMPACT & BENEFITS
 
 ## 🖼️ On the slide (from your deck)
-"IMPACT & BENEFITS" — add the outcomes table: transparency & accountability ↑ ·
-fake reporting & proxy ↓ · real-time monitoring · inspection governance ·
-citizen-centric delivery. Plus numbers: time-per-inspection 1 hr → 5 min,
-reporting lag months → minutes, auditing annual → 24/7.
+"IMPACT & BENEFITS" — a 5-step value chain across the top:
+**1 Real-Time Monitoring → 2 Early Anomaly Detection → 3 Targeted Surprise
+Inspections → 4 Verified Digital Evidence → 5 Transparent Welfare Delivery**
+
+Left column — who benefits: **PMU & Inspection Teams** (automated allocation &
+faster inspections with geo-tagged evidence) · **NGOs / Institutes** (clear
+compliance requirements and transparent verification) · **Beneficiaries**
+(improved service quality, continuous delivery, greater accountability).
+
+Right column — what improves: **SOCIAL & GOV: PUBLIC TRUST** (enhanced
+accountability and assurance) · **ECONOMIC: FRAUD PREVENTION** (resource
+optimization & minimized leakage) · **OPERATIONAL & ENV: PAPERLESS SCALE**
+(scalable digital continuous trail).
+
+Footer: **FROM: Report-Based Inspection → TO: Evidence-Based Continuous
+Verification**
 
 ## 🎤 Verbatim script (~60 seconds)
 
-> "Let's talk impact — for each stakeholder.
+> "Let's talk impact — follow the chain across the top.
 >
-> For the **ministry**: real-time visibility and risk-ranked institutes — grant
-> instalments can be gated on evidence, not paperwork. Reporting lag goes from
-> *months* to *minutes*.
+> Real-time monitoring enables **early anomaly detection**. Anomalies trigger
+> **targeted surprise inspections**. Inspections produce **verified digital
+> evidence**. And evidence makes welfare delivery **transparent**. Each step
+> feeds the next — that's the whole chain.
 >
-> For **field inspectors**: an hour of paperwork becomes a five-minute capture,
-> with navigation built in — and their honest reports are backed by AI evidence
-> nobody can dispute.
+> On the left, who benefits. The **PMU and inspection teams**: allocation is
+> automated and evidence is geo-tagged — reporting lag goes from *months* to
+> *minutes*. **NGOs and institutes**: clear compliance requirements and
+> transparent verification — honest ones finally compete on a level field,
+> because fraudulent competitors can't undercut them with fabricated costs.
+> And the **beneficiary** — the Divyangjan trainee, the elderly pensioner —
+> if attendance is physically and digitally verified, the scheme they were
+> promised actually reaches them.
 >
-> For **honest NGOs**: fair competition at last — fraudulent competitors can't
-> undercut them with fabricated costs.
+> On the right, what improves. Socially and for government: **public trust** —
+> enhanced accountability and assurance. Economically: **fraud prevention** —
+> resource optimisation and minimized leakage. Operationally and
+> environmentally: **paperless scale** — a scalable digital trail, continuous.
 >
-> And for the **beneficiary** — the Divyangjan trainee, the elderly pensioner —
-> the ultimate outcome: if attendance is physically and digitally verified, the
-> scheme they were promised actually reaches them.
->
-> The measurable deltas: inspection paperwork from about an hour to about five
-> minutes; reporting lag from months to minutes; auditing from annual to
-> continuous — twenty-four by seven."
+> And one line sums up the whole shift, at the bottom of the slide: from
+> *report-based inspection* to **evidence-based continuous verification**.
+> Inspection paperwork drops from about an hour to about five minutes; auditing
+> goes from annual to twenty-four by seven."
 
 ## 🔑 Key points
 1. Speak per **stakeholder**, ending with the beneficiary (emotional close).
@@ -302,9 +389,11 @@ reporting lag months → minutes, auditing annual → 24/7.
 # SLIDE 7 — REFERENCES & RESEARCH + THANK YOU
 
 ## 🖼️ On the slide (from your deck)
-"REFERENCES & RESEARCH — DRISHTI": socialjustice.gov.in (+ /schemes),
-digitalindia.gov.in, uidai.gov.in, docs.ultralytics.com, webrtc.org,
-postgresql.org/docs, docs.opencv.org
+"REFERENCES & RESEARCH — DRISHTI" in two groups:
+- **Official Government References:** socialjustice.gov.in ·
+  socialjustice.gov.in/schemes · digitalindia.gov.in · uidai.gov.in
+- **Technical Documentation References:** docs.opencv.org ·
+  docs.ultralytics.com · webrtc.org · postgresql.org/docs
 
 ## 🎤 Verbatim script (~40 seconds)
 
@@ -366,3 +455,7 @@ Anything goes — the full 50-question bank with answers is in
 - **Cost**: ₹0 software · ₹20k server/state · CPU-only AI
 - **Scale**: SQLite→PostgreSQL one line · stateless API · per-state AI
 - **Honest gaps**: push, offline queue, geo-fence, liveness — all named paths
+- **Impact closer**: "from report-based inspection → evidence-based continuous
+  verification" (bottom of slide 6)
+- **If probed on slide 5's "Offline Caching & Sync" box**: capture already
+  decoupled from sync; queue-and-forward = first roadmap item

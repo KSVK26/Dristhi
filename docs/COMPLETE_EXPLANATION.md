@@ -579,19 +579,19 @@ FastAPI WebSockets or SSE (we can name it).
 
 # 9 — Slide-by-slide PPT mapping (what to SAY)
 
-| Typical PPT slide | What we show/say |
+> Matches the **actual 7-slide deck** (SJB Institute format). Full per-slide
+> script with verbatim lines: `docs/PRESENTATION_SCRIPT.md`. Deck slide 4 is
+> intentionally skipped in the pitch.
+
+| Deck slide | What we show/say |
 |---|---|
-| **Title / PS details** | Read PS ID 26095, team, then the one-liner: "DRISHTI gives MoSJE real-time eyes on every institute." |
-| **Problem / existing system** | Use the fraud triangle (Section 1.2): ghost beneficiaries → proxy centres → collusion → reporting gap. End with: "paper can't be verified in real time." |
-| **Proposed solution** | The compliance table (2.4): every PS bullet → our feature. Say: "nothing in the PS is unimplemented." |
-| **Tech stack** | Section 4 summary: FastAPI + React + Flutter + scikit-learn + OpenCV, all open-source, ₹0 licence cost, CPU-only AI, offline-capable. |
-| **Architecture** | Section 3.1 diagram: 2 frontends → 1 API → DB + files. "Business logic in one place." |
-| **AI/Innovation** | IsolationForest (paper analogy) + Haar proxy check + seeded auditable lottery + transparent risk formula. Emphasise: explainable AI for government. |
-| **Demo** | The 12-step workflow (TESTING_GUIDE section C). Live: assign on dashboard → notification appears on phone → capture → proxy alert on dashboard → resolve → risk drops. |
-| **Feasibility & scalability** | SQLite→PostgreSQL one-line change; stateless API → horizontal scaling; CPU AI → ₹20k machine; Jitsi self-host on NIC. |
-| **Impact / outcomes** | Section 1.4 table: each expected outcome → mechanism. |
-| **Limitations / future** | Section 11 — honesty scores credibility. |
-| **Team** | Roles + what each member built. |
+| **1 — Title / PS details** | Read PS ID 26095, team, then the one-liner: "DRISHTI gives MoSJE real-time eyes on every institute." |
+| **2 — DRISHTI (Proposed Solution)** | Walk the left column top-to-bottom (dashboard → AI hub → field app → analytics), then the middle column: each "How it addresses" box kills one fraud mode (compliance table 2.4: "nothing in the PS is unimplemented"). Right column = innovation: lightweight CPU AI, zero-trust evidence, unified ecosystem. |
+| **3 — Technical Approach** | Narrate the five methodology stages left→right: data ingestion → centralized AI engine → automated alert trigger → smart surprise inspection → official dashboard action — this is the 12-step demo loop (TESTING_GUIDE section C). Tech-stack panel = Section 4 summary: FastAPI + React + Flutter + scikit-learn + OpenCV, all open-source, ₹0 licence cost, CPU-only AI. Architecture = Section 3.1: 2 frontends → 1 API → DB + files. |
+| **4 — (skipped)** | Intentionally not part of the pitch. |
+| **5 — Feasibility & Viability** | Top: technical / operational / economic feasibility (SQLite→PostgreSQL one-line change; stateless API → horizontal scaling; CPU AI → ₹20k machine; Jitsi self-host on NIC). Then each challenge → mitigation pair, honestly: offline caching & sync is a named roadmap item (Section 11); AI bias → human-in-the-loop; hardware → min-spec testing; adoption → three-tap UI. |
+| **6 — Impact & Benefits** | Follow the 5-step chain (real-time monitoring → early anomaly detection → targeted surprise inspections → verified digital evidence → transparent welfare delivery), then stakeholders (PMU teams / NGOs & institutes / beneficiaries) and benefit boxes (public trust / fraud prevention / paperless scale — Section 1.4 outcome mapping). Close on the footer: "FROM report-based inspection TO evidence-based continuous verification." |
+| **7 — References & Research** | Domain research (MoSJE + DoSJE scheme pages, Digital India, UIDAI) + engineering depth (OpenCV; Ultralytics and WebRTC evaluated for future versions; PostgreSQL scaling path). |
 
 ---
 
@@ -734,7 +734,17 @@ with three inputs (photo, auto-GPS, yes/no switches). No typing required.
 **Q26. What if there's no internet at the institute (rural)?**
 A: The prototype needs connectivity at submission. Roadmap: queue reports locally
 and sync later (Flutter packages exist), plus offline map caching — stated
-honestly as future scope.
+honestly as future scope. (This is exactly the "Offline Caching & Automatic
+Sync" mitigation box on deck slide 5 — if a judge probes it, give this same
+honest answer: capture is already decoupled from sync; queue-and-forward is
+the first roadmap item.)
+
+**Q26b. Your slide says offline caching — is it built or not?**
+A: Be straight: photo capture is compressed and uploads as soon as the network
+allows, but there is no local offline queue in the prototype yet. The
+architecture supports it (capture and sync are already separate steps), and
+it's the first roadmap item for field rollout. Overclaiming here would cost
+more credibility than the gap itself.
 
 **Q27. Can this scale to all of India?**
 A: Yes architecturally: stateless FastAPI scales horizontally; PostgreSQL
