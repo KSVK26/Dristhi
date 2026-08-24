@@ -1,6 +1,7 @@
 // DRISHTI - Login page (JWT auth against the FastAPI backend)
 
 import { useState } from "react";
+import Logo from "../components/Logo.jsx";
 import { api } from "../api.js";
 
 export default function Login({ onLogin }) {
@@ -30,7 +31,7 @@ export default function Login({ onLogin }) {
   return (
     <div className="login-wrap">
       <form className="login-card" onSubmit={submit}>
-        <div className="login-logo">👁️</div>
+        <div className="login-logo"><Logo size={58} /></div>
         <h1>DRISHTI</h1>
         <p className="muted">Smart Real-Time Monitoring & Inspection · DoSJE</p>
 

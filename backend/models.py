@@ -127,3 +127,11 @@ class Alert(Base):
     institute_id = Column(Integer, ForeignKey("institutes.id"), nullable=True)
     resolved = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    # ---- notification routing (v1) ----
+    # audience: 'admin' | 'inspector' | NULL (NULL = system/event log, not a notification)
+    audience = Column(String(20), nullable=True)
+    # target_user_id: direct notification to one user (e.g. assigned inspector)
+    target_user_id = Column(Integer, nullable=True)
+    # is_read: notification consumed? (alerts list keeps using `resolved`)
+    is_read = Column(Boolean, default=False)

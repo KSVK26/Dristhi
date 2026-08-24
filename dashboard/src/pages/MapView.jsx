@@ -24,11 +24,20 @@ export default function MapView({ user }) {
   const [selected, setSelected] = useState(null);   // clicked institute
   const [attendance, setAttendance] = useState([]); // its 30-day series
   const [message, setMessage] = useState("");
+  const [fDistrict, setFDistrict] = useState("All");
+  const [fScheme, setFScheme] = useState("All");
 
   async function load() {
     setInstitutes(await api("/institutes"));
   }
   useEffect(() => { load(); }, []);
+
+  const districts = ["All", ...new Set(institutes.map((i) => i.district))];
+  const schemes = ["All", ...new Set(institutes.map((i) => i.scheme))];
+  const visible = institutes.filter(
+    (i) => (fDistrict === "All" || i.district === fDistrict) &&
+           (fScheme === "All" || i.scheme === fScheme)
+  );
 
   async function openInstitute(inst) {
     setSelected(inst);
@@ -75,15 +84,23 @@ export default function MapView({ user }) {
       {/* ---------------- map ---------------- */}
       <div className="map-side">
         <div className="toolbar">
-          <button onClick={runAI}>🤖 Run AI Anomaly Scan</button>
+          <button className="btn primary" onClick={runAI}>🤖 Run AI Anomaly Scan</button>
+          <div className="map-filters">
+            <select value={fDistrict} onChange={(e) => setFDistrict(e.target.value)}>
+              {districts.map((d) => <option key={d}>{d === "All" ? "All districts" : d}</option>)}
+            </select>
+            <select value={fScheme} onChange={(e) => setFScheme(e.target.value)}>
+              {schemes.map((s) => <option key={s}>{s === "All" ? "All schemes" : s}</option>)}
+            </select>
+          </div>
           <span className="muted">
-            {institutes.length} institutes monitored in real time
+            {visible.length} of {institutes.length} institutes
           </span>
         </div>
         <MapContainer center={[28.62, 77.1]} zoom={10} className="leaflet-map">
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                      attribution="© OpenStreetMap" />
-          {institutes.map((i) => (
+          {visible.map((i) => (
             <CircleMarker key={i.id}
               center={[i.lat, i.lng]} radius={14}
               pathOptions={{ color: riskColor(i.risk_score), fillColor: riskColor(i.risk_score), fillOpacity: 0.75 }}

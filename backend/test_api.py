@@ -73,12 +73,21 @@ def main():
     print(f"   assigned to {data['assigned_to']} "
           f"({data['distance_km']} km away), seed={data['assignment_seed']}")
 
-    print("== 5. INSPECTOR SEES TASK ==")
-    r = client.get("/inspections/my", headers=ih)
-    tasks = r.json()
-    assert len(tasks) >= 1
-    task = tasks[0]
-    print(f"   task #{task['inspection_id']} at {task['institute_name']}")
+    print("== 5. ASSIGNED INSPECTOR SEES TASK ==")
+    task = None
+    for uname in ("ravi", "priya", "arjun"):   # AI may pick any PMU inspector
+        tok = client.post("/login",
+                          json={"username": uname,
+                                "password": "inspector123"}).json()["token"]
+        cand = client.get("/inspections/my",
+                          headers={"Authorization": f"Bearer {tok}"}).json()
+        if cand:
+            task = cand[0]
+            ih = {"Authorization": f"Bearer {tok}"}
+            print(f"   {uname} holds task #{task['inspection_id']} "
+                  f"at {task['institute_name']}")
+            break
+    assert task, "no inspector received the assignment"
 
     print("== 6. SUBMIT GEO-TAGGED EVIDENCE ==")
     r = client.post(

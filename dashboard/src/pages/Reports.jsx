@@ -14,11 +14,34 @@ export default function Reports() {
     api("/reports").then(setReports).catch(console.error);
   }, []);
 
+  // Export the report register as CSV (transparency / compliance evidence)
+  function exportCSV() {
+    const rows = [["Report ID", "Institute", "Date", "Latitude", "Longitude", "AI Flags", "Checklist"]];
+    reports.forEach((r) => {
+      rows.push([
+        r.id, r.institute_name, new Date(r.created_at).toLocaleString(),
+        r.geo_lat.toFixed(6), r.geo_lng.toFixed(6),
+        r.ai_flags.join(" | ") || "verified",
+        Object.entries(r.checklist).map(([q, a]) => `${q}: ${a}`).join("; "),
+      ]);
+    });
+    const csv = rows.map((row) =>
+      row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+    ).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `drishti_reports_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+  }
+
   return (
     <div>
       <div className="toolbar">
-        <h2>📋 Field Inspection Reports</h2>
-        <span className="muted">geo-tagged evidence with AI verification</span>
+        <h2 className="section-title">📋 Field Inspection Reports</h2>
+        <button className="btn" onClick={exportCSV} disabled={!reports.length}>
+          ⬇ Export CSV
+        </button>
       </div>
 
       {reports.length === 0 && (

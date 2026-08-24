@@ -80,7 +80,8 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
 
 @app.get("/me")
 def me(user: User = Depends(get_current_user)):
-    return {"id": user.id, "name": user.name, "role": user.role}
+    return {"id": user.id, "name": user.name, "role": user.role,
+            "username": user.username}
 
 
 # =============================================================== MONITOR
@@ -201,6 +202,16 @@ def assign_random(body: AssignRequest, db: Session = Depends(get_db),
         message=(f"Surprise inspection assigned for {inst.name} to "
                  f"{inspector.name}. Seed={inspection.assignment_seed}"),
         institute_id=inst.id,
+        audience="admin",
+    ))
+    # direct notification to the assigned inspector
+    db.add(Alert(
+        type="inspection_assigned",
+        severity="medium",
+        message=(f"🎯 NEW ASSIGNMENT: Surprise inspection at {inst.name} "
+                 f"({inst.district}). Check My Tasks in the field app."),
+        institute_id=inst.id,
+        target_user_id=inspector.id,
     ))
     db.commit()
 
@@ -253,9 +264,79 @@ def start_vc(body: VCRequest, db: Session = Depends(get_db),
         severity="medium",
         message=f"Surprise VC initiated with {inst.name}: {url}",
         institute_id=inst.id,
+        audience="admin",
+    ))
+    # notify every field inspector so anyone nearby can join/support
+    db.add(Alert(
+        type="vc_started",
+        severity="medium",
+        message=(f"📞 SURPRISE VC at {inst.name} ({inst.district}) is LIVE. "
+                 f"Join: {url}"),
+        institute_id=inst.id,
+        audience="inspector",
     ))
     db.commit()
     return {"room": room, "url": url}
+
+
+# ========================================================== NOTIFICATIONS
+@app.get("/notifications")
+def my_notifications(db: Session = Depends(get_db),
+                     user: User = Depends(get_current_user)):
+    """
+    Unread notifications for the logged-in user:
+      - direct:   target_user_id == me
+      - by role:  target_user_id IS NULL and audience == my role
+    """
+    rows = (
+        db.query(Alert)
+        .filter(
+            Alert.is_read.is_(False),
+            ((Alert.target_user_id == user.id) |
+             ((Alert.target_user_id.is_(None)) & (Alert.audience == user.role))),
+        )
+        .order_by(Alert.created_at.desc())
+        .limit(30)
+        .all()
+    )
+    return [
+        {"id": n.id, "type": n.type, "severity": n.severity,
+         "message": n.message, "created_at": str(n.created_at),
+         "institute_id": n.institute_id}
+        for n in rows
+    ]
+
+
+@app.post("/notifications/{alert_id}/read")
+def mark_notification_read(alert_id: int, db: Session = Depends(get_db),
+                           user: User = Depends(get_current_user)):
+    n = db.get(Alert, alert_id)
+    if not n:
+        raise HTTPException(404, "Notification not found")
+    # only the recipient (or that role) may dismiss it
+    if n.target_user_id not in (None, user.id) and n.audience != user.role:
+        raise HTTPException(403, "Not your notification")
+    n.is_read = True
+    db.commit()
+    return {"ok": True}
+
+
+@app.post("/notifications/read-all")
+def mark_all_notifications_read(db: Session = Depends(get_db),
+                                user: User = Depends(get_current_user)):
+    rows = (
+        db.query(Alert)
+        .filter(
+            Alert.is_read.is_(False),
+            ((Alert.target_user_id == user.id) |
+             ((Alert.target_user_id.is_(None)) & (Alert.audience == user.role))),
+        )
+        .all()
+    )
+    for n in rows:
+        n.is_read = True
+    db.commit()
+    return {"ok": True, "marked": len(rows)}
 
 
 # ================================================================ REPORT
@@ -324,9 +405,11 @@ async def submit_report(
             message=(f"Evidence photo from {inst.name} contains NO human faces "
                      f"— possible fake/proxy reporting by field staff."),
             institute_id=inst.id,
+            audience="admin",
         ))
 
     ai_engine.compute_risk_score(db, inst)
+    ai_engine.notify_high_risk(db, inst)   # admin notification if score >= 70
     db.commit()
     db.refresh(report)
 
@@ -349,6 +432,8 @@ def list_reports(db: Session = Depends(get_db),
         inst = db.get(Institute, insp.institute_id)
         out.append({
             "id": r.id, "institute_name": inst.name,
+            "inspection_id": r.inspection_id,
+            "inspector_id": insp.inspector_id,
             "geo_lat": r.geo_lat, "geo_lng": r.geo_lng,
             "photo_url": f"/{r.photo_path}",
             "checklist": json.loads(r.checklist_json),

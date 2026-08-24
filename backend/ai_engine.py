@@ -140,6 +140,7 @@ def run_anomaly_detection(db: Session) -> list[dict]:
                         f"{inst.risk_score}. Surprise inspection recommended."
                     ),
                     institute_id=inst.id,
+                    audience="admin",
                 )
             )
             flagged.append(
@@ -206,3 +207,39 @@ def compute_risk_score(db: Session, institute: Institute) -> int:
     institute.risk_score = max(0, min(score, 100))
     db.commit()
     return institute.risk_score
+
+
+# ------------------------------------------------- notification helper
+def notify_high_risk(db: Session, institute: Institute) -> None:
+    """
+    Notify admins when an institute's risk score crosses 70.
+    De-duplicated: only one unread high-risk notification per institute.
+    """
+    if institute.risk_score < 70:
+        return
+    existing = (
+        db.query(Alert)
+        .filter(
+            Alert.institute_id == institute.id,
+            Alert.audience == "admin",
+            Alert.is_read.is_(False),
+            Alert.type == "high_risk",
+        )
+        .first()
+    )
+    if existing:
+        return  # already notified — avoid spamming
+    db.add(
+        Alert(
+            type="high_risk",
+            severity="high",
+            message=(
+                f"🚨 {institute.name} is now HIGH RISK "
+                f"(score {institute.risk_score}/100). Immediate oversight "
+                f"recommended."
+            ),
+            institute_id=institute.id,
+            audience="admin",
+        )
+    )
+    db.commit()
