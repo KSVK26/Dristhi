@@ -48,7 +48,7 @@ export default function DashboardHome({ user, go }) {
   const openAlerts = alerts.filter((a) => !a.resolved);
   const vcRooms = alerts
     .filter((a) => a.type === "vc_started")
-    .map((a) => ({ ...a, url: a.message.match(/https:\S+)/)?.[0] }))
+    .map((a) => ({ ...a, url: a.message.split(" ").find((w) => w.startsWith("https://")) }))
     .slice(0, 4);
 
   // ---------- admin quick actions ----------

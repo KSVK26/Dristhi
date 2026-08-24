@@ -141,10 +141,10 @@ export default function MapView({ user }) {
 
             {user.role === "admin" && (
               <div className="actions">
-                <button className="primary" onClick={assignRandom}>
+                <button className="btn primary" onClick={assignRandom}>
                   🎯 Assign Random Inspection
                 </button>
-                <button onClick={startVC}>📞 Start Surprise VC</button>
+                <button className="btn" onClick={startVC}>📞 Start Surprise VC</button>
               </div>
             )}
           </>
