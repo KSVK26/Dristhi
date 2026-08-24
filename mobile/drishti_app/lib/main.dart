@@ -19,12 +19,22 @@ import 'app_shell.dart';
 // Backend URL per platform:
 //   Web (Chrome/Edge)  -> localhost works directly
 //   Android EMULATOR   -> 10.0.2.2 is the emulator's alias for your PC
-//   Physical phone     -> replace with your PC's WiFi IP, e.g. 192.168.1.10
-final String kApiBase =
+//   PHYSICAL PHONE     -> type your PC's WiFi IP on the login screen
+//                         (e.g. http://192.168.1.10:8000) — it is remembered.
+//
+// kApiBase is a MUTABLE global: the login screen overwrites it with the
+// value typed into the "Server address" box before signing in.
+String kApiBase =
     kIsWeb ? 'http://localhost:8000' : 'http://10.0.2.2:8000';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // restore a previously-saved server address (physical phones)
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('server_url');
+    if (saved != null && saved.isNotEmpty) kApiBase = saved;
+  } catch (_) {}
   runApp(const DrishtiApp());
 }
 
@@ -54,12 +64,23 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _userCtrl = TextEditingController(text: 'ravi');
   final _passCtrl = TextEditingController(text: 'inspector123');
+  final _serverCtrl = TextEditingController(text: kApiBase);
   bool _busy = false;
   String? _error;
 
   Future<void> _login() async {
     setState(() { _busy = true; _error = null; });
     try {
+      // physical phones: use whatever server address the user typed
+      var server = _serverCtrl.text.trim();
+      if (!server.endsWith('/')) server = server;
+      if (!server.startsWith('http')) {
+        throw Exception('Server address must start with http://');
+      }
+      kApiBase = server;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('server_url', server); // remember next launch
+
       final res = await http.post(
         Uri.parse('$kApiBase/login'),
         headers: {'Content-Type': 'application/json'},
@@ -76,8 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
         throw Exception('This app is for PMU inspectors only.');
       }
 
-      // Save token + name for later screens
-      final prefs = await SharedPreferences.getInstance();
+      // Save token + name for later screens (prefs already loaded above)
       await prefs.setString('token', data['token']);
       await prefs.setString('name', data['name']);
 
@@ -127,6 +147,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _passCtrl,
                     obscureText: true,
                     decoration: const InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _serverCtrl,
+                    keyboardType: TextInputType.url,
+                    decoration: const InputDecoration(
+                      labelText: 'Server address (PC running the backend)',
+                      hintText: 'http://192.168.1.10:8000',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                   if (_error != null)
                     Padding(
