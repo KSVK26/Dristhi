@@ -12,6 +12,7 @@ import CctvGrid from "./pages/CctvGrid.jsx";
 import Alerts from "./pages/Alerts.jsx";
 import Reports from "./pages/Reports.jsx";
 import NotificationsPage from "./pages/NotificationsPage.jsx";
+import TasksPage from "./pages/TasksPage.jsx";
 import Profile from "./pages/Profile.jsx";
 
 // Sidebar navigation per role
@@ -27,6 +28,7 @@ const NAV = {
   ],
   inspector: [
     { id: "home", label: "My Dashboard", icon: "▦" },
+    { id: "tasks", label: "My Tasks", icon: "🗂️" },
     { id: "map", label: "Live Map", icon: "◉" },
     { id: "cctv", label: "CCTV Feeds", icon: "📹" },
     { id: "alerts", label: "Alerts", icon: "🚨" },
@@ -46,10 +48,11 @@ export default function App() {
     <Layout user={user} nav={NAV[user.role] || NAV.inspector}
             tab={tab} setTab={setTab} onLogout={() => setUser(null)}>
       {tab === "home" && <DashboardHome user={user} go={setTab} />}
+      {tab === "tasks" && <TasksPage user={user} onChanged={() => {}} />}
       {tab === "map" && <MapView user={user} />}
       {tab === "cctv" && <CctvGrid />}
       {tab === "alerts" && <Alerts user={user} />}
-      {tab === "reports" && <Reports />}
+      {tab === "reports" && <Reports user={user} />}
       {tab === "notifs" && <NotificationsPage />}
       {tab === "profile" && <Profile user={user} />}
     </Layout>

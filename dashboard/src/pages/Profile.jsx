@@ -25,7 +25,27 @@ const PERMISSIONS = {
 
 export default function Profile({ user }) {
   const [me, setMe] = useState(user);
-  useEffect(() => { api("/me").then(setMe).catch(() => {}); }, []);
+  const [compliance, setCompliance] = useState(null);
+
+  useEffect(() => {
+    api("/me").then(setMe).catch(() => {});
+    if (user.role === "inspector") {
+      // evidence-quality stats: completed tasks + clean-submission ratio
+      Promise.all([api("/inspections/my"), api("/reports")])
+        .then(([tasks, reports]) => {
+          const myIds = tasks.map((t) => t.inspection_id);
+          const mine = reports.filter((r) => myIds.includes(r.inspection_id));
+          const done = tasks.filter((t) => t.status === "completed").length;
+          const clean = mine.filter((r) => r.ai_flags.length === 0).length;
+          setCompliance({
+            done,
+            submitted: mine.length,
+            quality: mine.length ? Math.round((clean / mine.length) * 100) : 100,
+          });
+        })
+        .catch(() => {});
+    }
+  }, [user.role]);
 
   const initials = me.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
@@ -52,6 +72,17 @@ export default function Profile({ user }) {
           <div className="detail"><small>Platform</small><b>DRISHTI v1.0 (SIH 26095)</b></div>
         </div>
       </div>
+
+      {compliance && (
+        <div className="card profile-card">
+          <h2 className="section-title">📊 Field performance</h2>
+          <div className="detail-grid" style={{ borderTop: "none", paddingTop: 0 }}>
+            <div className="detail"><small>Inspections completed</small><b>{compliance.done}</b></div>
+            <div className="detail"><small>Evidence reports submitted</small><b>{compliance.submitted}</b></div>
+            <div className="detail"><small>Evidence quality (no proxy flags)</small><b>{compliance.quality}%</b></div>
+          </div>
+        </div>
+      )}
 
       <div className="card profile-card">
         <h2 className="section-title">Your permissions</h2>

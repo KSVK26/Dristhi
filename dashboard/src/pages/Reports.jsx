@@ -6,18 +6,29 @@ import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import { api, API_BASE } from "../api.js";
 
-export default function Reports() {
+export default function Reports({ user }) {
   const [reports, setReports] = useState([]);
   const [openId, setOpenId] = useState(null);
+  const [mineOnly, setMineOnly] = useState(false);
+  const [myInspectionIds, setMyInspectionIds] = useState([]);
 
   useEffect(() => {
     api("/reports").then(setReports).catch(console.error);
+    if (user?.role === "inspector") {
+      api("/inspections/my")
+        .then((t) => setMyInspectionIds(t.map((x) => x.inspection_id)))
+        .catch(() => {});
+    }
   }, []);
 
+  const visible = mineOnly
+    ? reports.filter((r) => myInspectionIds.includes(r.inspection_id))
+    : reports;
+
   // Export the report register as CSV (transparency / compliance evidence)
-  function exportCSV() {
+  function exportCSV(list) {
     const rows = [["Report ID", "Institute", "Date", "Latitude", "Longitude", "AI Flags", "Checklist"]];
-    reports.forEach((r) => {
+    list.forEach((r) => {
       rows.push([
         r.id, r.institute_name, new Date(r.created_at).toLocaleString(),
         r.geo_lat.toFixed(6), r.geo_lng.toFixed(6),
@@ -39,19 +50,27 @@ export default function Reports() {
     <div>
       <div className="toolbar">
         <h2 className="section-title">📋 Field Inspection Reports</h2>
-        <button className="btn" onClick={exportCSV} disabled={!reports.length}>
-          ⬇ Export CSV
-        </button>
+        <div className="filters">
+          {user?.role === "inspector" && (
+            <button className={"chip" + (mineOnly ? " active" : "")}
+                    onClick={() => setMineOnly(!mineOnly)}>
+              my submissions only
+            </button>
+          )}
+          <button className="btn" onClick={() => exportCSV(visible)} disabled={!visible.length}>
+            ⬇ Export CSV
+          </button>
+        </div>
       </div>
 
-      {reports.length === 0 && (
+      {visible.length === 0 && (
         <p className="muted">
-          No reports yet — submit one from the Flutter field app.
+          No reports in this view — submit one from the Flutter field app.
         </p>
       )}
 
       <div className="report-list">
-        {reports.map((r) => (
+        {visible.map((r) => (
           <div key={r.id} className="report-card">
             <img
               src={API_BASE + r.photo_url}

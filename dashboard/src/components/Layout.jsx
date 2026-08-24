@@ -32,9 +32,12 @@ function Bell() {
     load();
   }
 
+  const hasHigh = items.some((n) => n.severity === "high");
+
   return (
     <div className="bell-wrap" ref={ref}>
-      <button className="bell" onClick={() => setOpen(!open)} title="Notifications">
+      <button className={"bell" + (hasHigh ? " pulse" : "")}
+              onClick={() => setOpen(!open)} title="Notifications">
         🔔
         {items.length > 0 && <span className="bell-badge">{items.length}</span>}
       </button>

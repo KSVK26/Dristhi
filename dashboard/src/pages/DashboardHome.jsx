@@ -3,7 +3,7 @@
 //   inspector -> "PMU Field Ops": my tasks, Google Maps links, submissions
 
 import { useEffect, useState } from "react";
-import { api } from "../api.js";
+import { api, haversineKm } from "../api.js";
 
 const CHECKLIST = [
   "Staff physically present?",
@@ -31,6 +31,7 @@ export default function DashboardHome({ user, go }) {
   const [alerts, setAlerts] = useState([]);
   const [reports, setReports] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [me, setMe] = useState(null);
   const [msg, setMsg] = useState("");
   const [pickInst, setPickInst] = useState("");
 
@@ -40,6 +41,7 @@ export default function DashboardHome({ user, go }) {
     setReports(await api("/reports").catch(() => []));
     if (user.role === "inspector") {
       setTasks(await api("/inspections/my").catch(() => []));
+      setMe(await api("/me").catch(() => null));
     }
   };
   useEffect(() => { load(); }, [user.role]);
@@ -50,6 +52,19 @@ export default function DashboardHome({ user, go }) {
     .filter((a) => a.type === "vc_started")
     .map((a) => ({ ...a, url: a.message.split(" ").find((w) => w.startsWith("https://")) }))
     .slice(0, 4);
+
+  // ---------- inspector derived data ----------
+  const myReports = reports.filter((r) =>
+    tasks.some((t) => t.inspection_id === r.inspection_id));
+  const doneTasks = tasks.filter((t) => t.status === "completed");
+  const weekAgo = Date.now() - 7 * 864e5;
+  const doneThisWeek = doneTasks.filter(
+    (t) => new Date(t.scheduled_at).getTime() > weekAgo).length;
+  const withDist = tasks.map((t) => ({
+    ...t, km: me ? haversineKm(me.lat, me.lng, t.lat, t.lng) : null }));
+  const nextUp = withDist
+    .filter((t) => t.status !== "completed")
+    .sort((a, b) => (a.km ?? 999) - (b.km ?? 999))[0];
 
   // ---------- admin quick actions ----------
   async function runScan() {
@@ -119,48 +134,69 @@ export default function DashboardHome({ user, go }) {
         </div>
       ) : (
         <div className="stat-grid">
-          <StatCard icon="🗂️" tint="blue" label="Tasks assigned" value={tasks.length} sub="lifetime assignments" />
-          <StatCard icon="✅" tint="green" label="Completed" value={tasks.filter((t) => t.status === "completed").length} sub="evidence submitted" />
-          <StatCard icon="⏳" tint="amber" label="Pending" value={tasks.filter((t) => t.status !== "completed").length} sub="action required" />
+          <StatCard icon="⏳" tint="amber" label="Pending tasks"
+            value={tasks.filter((t) => t.status !== "completed").length}
+            sub="action required" />
+          <StatCard icon="✅" tint="green" label="Completed" value={doneTasks.length}
+            sub="evidence submitted" />
+          <StatCard icon="📅" tint="blue" label="Completed this week" value={doneThisWeek}
+            sub="last 7 days" />
           <StatCard icon="⚠️" tint="red" label="Proxy flags on my reports"
-            value={reports.filter((r) => tasks.some((t) => t.inspection_id === r.inspection_id) && r.ai_flags.length > 0).length}
+            value={myReports.filter((r) => r.ai_flags.length > 0).length}
             sub="re-visit with clear photos to clear them" />
         </div>
       )}
 
-      {/* ---------- inspector: task cards ---------- */}
+      {/* ---------- inspector: next-up hero + activity ---------- */}
       {user.role === "inspector" && (
-        <div className="card section">
-          <h2 className="section-title">My Tasks</h2>
-          <div className="banner">
-            📱 Evidence capture (camera + GPS + checklist) happens in the <b>DRISHTI field app</b>.
-            This dashboard mirrors your assignments.
-          </div>
-          {tasks.length === 0 && <p className="muted">No assignments yet — you'll be notified here and in the field app.</p>}
-          {tasks.map((t) => {
-            const done = t.status === "completed";
-            return (
-              <div key={t.inspection_id} className="task-row">
-                <div className="task-info">
-                  <b>{t.institute_name}</b>
-                  <small>{t.scheme} · {t.district} {t.is_random && <span className="chip-surprise">SURPRISE</span>}</small>
+        <>
+          <div className="card section nextup">
+            <h2 className="section-title">🧭 Next up — nearest pending task</h2>
+            {!nextUp ? (
+              <p className="muted">🎉 Nothing pending — new assignments will appear here.</p>
+            ) : (
+              <div className="nextup-body">
+                <div className="nextup-info">
+                  <b>{nextUp.institute_name}
+                    {nextUp.is_random && <span className="chip-surprise">SURPRISE</span>}
+                  </b>
+                  <small>{nextUp.scheme} · {nextUp.district}
+                    {nextUp.km != null && <> · 📍 {nextUp.km.toFixed(1)} km away</>}
+                  </small>
                   <div className="checklist-preview">
                     {CHECKLIST.map((q) => <span key={q} className="check-q">☑ {q}</span>)}
                   </div>
                 </div>
                 <div className="task-actions">
-                  <a className="btn sm" target="_blank" rel="noreferrer"
-                     href={`https://www.google.com/maps?q=${t.lat},${t.lng}`}>
+                  <a className="btn primary" target="_blank" rel="noreferrer"
+                     href={`https://www.google.com/maps?q=${nextUp.lat},${nextUp.lng}`}>
                     🧭 Navigate
                   </a>
-                  <span className={"chip-status " + (done ? "ok" : "wait")}>
-                    {done ? "✔ Completed" : "⏳ Pending"}
-                  </span>
+                  <button className="btn" onClick={() => go("tasks")}>All tasks →</button>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            )}
+            <div className="banner" style={{ marginTop: 14 }}>
+              📱 Evidence capture (camera + GPS + checklist) happens in the <b>DRISHTI field app</b>.
+            </div>
+          </div>
+
+          <div className="card section">
+            <h2 className="section-title">Recent activity</h2>
+            {myReports.length === 0 && <p className="muted">No submissions yet.</p>}
+            {myReports.slice(0, 3).map((r) => (
+              <div key={r.id} className="mini-alert">
+                <span className={"sev-dot " + (r.ai_flags.length ? "high" : "low")} />
+                <span className="mini-msg">
+                  {r.ai_flags.length
+                    ? `⚠ Proxy flag at ${r.institute_name}`
+                    : `✔ Verified submission at ${r.institute_name}`}
+                  <small> · {new Date(r.created_at).toLocaleDateString()}</small>
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* ---------- admin: VC panel + recent alerts ---------- */}
@@ -190,28 +226,7 @@ export default function DashboardHome({ user, go }) {
         </div>
       )}
 
-      {/* ---------- inspector: my submissions ---------- */}
-      {user.role === "inspector" && (
-        <div className="card section">
-          <h2 className="section-title">My Submissions</h2>
-          {reports.filter((r) => tasks.some((t) => t.inspection_id === r.inspection_id)).length === 0 && (
-            <p className="muted">Nothing submitted yet.</p>
-          )}
-          {reports
-            .filter((r) => tasks.some((t) => t.inspection_id === r.inspection_id))
-            .map((r) => (
-              <div key={r.id} className="task-row">
-                <div className="task-info">
-                  <b>{r.institute_name}</b>
-                  <small>{new Date(r.created_at).toLocaleString()} · 📍 {r.geo_lat.toFixed(3)}, {r.geo_lng.toFixed(3)}</small>
-                </div>
-                {r.ai_flags.length === 0
-                  ? <span className="chip-status ok">✔ AI verified</span>
-                  : r.ai_flags.map((f) => <span key={f} className="chip-status bad">⚠ {f.replace(/_/g, " ")}</span>)}
-              </div>
-            ))}
-        </div>
-      )}
+      {/* inspector submission history now lives in Reports ("My submissions only") */}
 
 
     </div>

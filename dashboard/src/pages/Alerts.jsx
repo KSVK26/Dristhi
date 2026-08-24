@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 
-export default function Alerts() {
+export default function Alerts({ user }) {
   const [alerts, setAlerts] = useState([]);
   const [filter, setFilter] = useState("all");
 
@@ -24,6 +24,11 @@ export default function Alerts() {
 
   async function resolve(id) {
     await api(`/alerts/${id}/resolve`, { method: "POST" });
+    load();
+  }
+
+  async function acknowledge(id) {
+    await api(`/alerts/${id}/acknowledge`, { method: "POST" });
     load();
   }
 
@@ -57,8 +62,17 @@ export default function Alerts() {
               <small>{new Date(a.created_at).toLocaleString()}</small>
             </div>
             <p>{a.message}</p>
+            {a.acknowledged && (
+              <small className="muted"> ✔ acknowledged{a.acknowledged_by ? ` by ${a.acknowledged_by}` : ""}</small>
+            )}
             {!a.resolved && (
-              <button onClick={() => resolve(a.id)}>✔ Mark Resolved</button>
+              user?.role === "admin" ? (
+                <button className="btn sm" onClick={() => resolve(a.id)}>✔ Mark Resolved</button>
+              ) : !a.acknowledged ? (
+                <button className="btn sm" onClick={() => acknowledge(a.id)}>👁 Acknowledge</button>
+              ) : (
+                <span className="muted">✔ You acknowledged this — resolution by DoSJE officials</span>
+              )
             )}
             {a.resolved && <span className="muted">✔ Resolved</span>}
           </div>

@@ -26,11 +26,17 @@ export default function MapView({ user }) {
   const [message, setMessage] = useState("");
   const [fDistrict, setFDistrict] = useState("All");
   const [fScheme, setFScheme] = useState("All");
+  const [myTasks, setMyTasks] = useState([]);       // inspector: own assignments
 
   async function load() {
     setInstitutes(await api("/institutes"));
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    if (user.role === "inspector") {
+      api("/inspections/my").then(setMyTasks).catch(() => {});
+    }
+  }, []);
 
   const districts = ["All", ...new Set(institutes.map((i) => i.district))];
   const schemes = ["All", ...new Set(institutes.map((i) => i.scheme))];
@@ -126,6 +132,34 @@ export default function MapView({ user }) {
                 (selected.risk_score >= 70 ? "high" : selected.risk_score >= 40 ? "mid" : "low")}>
               Risk Score: {selected.risk_score}/100
             </div>
+
+            {/* ---------- inspector context for this institute ---------- */}
+            {user.role === "inspector" && (() => {
+              const mine = myTasks.filter((t) => t.institute_id === selected.id);
+              const open = mine.find((t) => t.status !== "completed");
+              const done = [...mine].reverse().find((t) => t.status === "completed");
+              return (
+                <>
+                  {open && (
+                    <div className="banner">
+                      🗂️ You have a {open.status === "in_progress" ? "task in progress" : "task assigned"} here
+                      {open.is_random && " (SURPRISE)"}
+                    </div>
+                  )}
+                  {!open && done && (
+                    <div className="banner ok-banner">
+                      ✔ You inspected this on {new Date(done.scheduled_at).toLocaleDateString()}
+                    </div>
+                  )}
+                  <div className="actions">
+                    <a className="btn primary" target="_blank" rel="noreferrer"
+                       href={`https://www.google.com/maps?q=${selected.lat},${selected.lng}`}>
+                      🧭 Navigate
+                    </a>
+                  </div>
+                </>
+              );
+            })()}
 
             <h3>30-Day Attendance (AI-monitored)</h3>
             <ResponsiveContainer width="100%" height={220}>

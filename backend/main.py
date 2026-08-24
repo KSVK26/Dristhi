@@ -81,7 +81,8 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
 @app.get("/me")
 def me(user: User = Depends(get_current_user)):
     return {"id": user.id, "name": user.name, "role": user.role,
-            "username": user.username}
+            "username": user.username,
+            "lat": user.lat, "lng": user.lng}
 
 
 # =============================================================== MONITOR
@@ -173,12 +174,31 @@ def run_anomaly(db: Session = Depends(get_db),
 def get_alerts(db: Session = Depends(get_db),
                user: User = Depends(get_current_user)):
     alerts = db.query(Alert).order_by(Alert.created_at.desc()).limit(50).all()
+    ack_names = {}
+    for a in alerts:
+        if a.acknowledged_by:
+            ack_names[a.id] = db.get(User, a.acknowledged_by).name
     return [
         {"id": a.id, "type": a.type, "severity": a.severity,
          "message": a.message, "resolved": a.resolved,
+         "acknowledged": a.acknowledged,
+         "acknowledged_by": ack_names.get(a.id),
          "created_at": str(a.created_at), "institute_id": a.institute_id}
         for a in alerts
     ]
+
+
+@app.post("/alerts/{alert_id}/acknowledge")
+def acknowledge_alert(alert_id: int, db: Session = Depends(get_db),
+                      user: User = Depends(require_role("inspector"))):
+    """Inspector marks an alert as seen/acted-upon (resolution stays with admins)."""
+    alert = db.get(Alert, alert_id)
+    if not alert:
+        raise HTTPException(404, "Alert not found")
+    alert.acknowledged = True
+    alert.acknowledged_by = user.id
+    db.commit()
+    return {"ok": True, "alert_id": alert_id, "acknowledged_by": user.name}
 
 
 # ================================================================ VERIFY
@@ -223,6 +243,22 @@ def assign_random(body: AssignRequest, db: Session = Depends(get_db),
         "assignment_seed": inspection.assignment_seed,
         "note": "Seed stored — re-running it reproduces the exact same draw.",
     }
+
+
+@app.post("/inspections/{inspection_id}/start")
+def start_inspection(inspection_id: int, db: Session = Depends(get_db),
+                     user: User = Depends(require_role("inspector"))):
+    """Inspector marks an assigned task as in_progress (assigned -> in_progress)."""
+    insp = db.get(Inspection, inspection_id)
+    if not insp:
+        raise HTTPException(404, "Inspection not found")
+    if insp.inspector_id != user.id:
+        raise HTTPException(403, "This inspection belongs to another inspector")
+    if insp.status == "completed":
+        raise HTTPException(400, "Already completed")
+    insp.status = "in_progress"
+    db.commit()
+    return {"ok": True, "inspection_id": inspection_id, "status": "in_progress"}
 
 
 @app.get("/inspections/my")

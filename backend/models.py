@@ -135,3 +135,7 @@ class Alert(Base):
     target_user_id = Column(Integer, nullable=True)
     # is_read: notification consumed? (alerts list keeps using `resolved`)
     is_read = Column(Boolean, default=False)
+    # acknowledged: an inspector has seen/acted on this alert (resolution
+    # itself stays with admins)
+    acknowledged = Column(Boolean, default=False)
+    acknowledged_by = Column(Integer, nullable=True)
