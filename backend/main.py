@@ -181,12 +181,13 @@ def attendance_analytics(institute_id: int, db: Session = Depends(get_db),
 
 CCTV_STREAMS = [
     # Free public HLS test streams simulate real RTSP/IP-camera feeds.
+    # (QA fix #002: only use streams verified live — Apple CDN + Mux)
     {"id": 1, "label": "Institute 1 – Main Hall",
-     "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"},
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8"},
     {"id": 2, "label": "Institute 2 – Classroom A",
-     "url": "https://test-streams.mux.dev/pts_shift/master.m3u8"},
+     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8"},
     {"id": 3, "label": "Institute 3 – Entrance Gate",
-     "url": "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8"},
+     "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"},
     {"id": 4, "label": "LIVE SITE CAMERA (DroidCam phone)",
      "url": "droidcam"},   # dashboard shows instructions for this tile
 ]
@@ -673,6 +674,31 @@ def resolve_alert(alert_id: int, db: Session = Depends(get_db),
         ai_engine.compute_risk_score(db, inst)
     db.commit()
     return {"ok": True, "alert_id": alert_id}
+
+
+# ------------------------------------------------- Google Maps link helper
+@app.post("/utils/expand-maps-link")
+def expand_maps_link(body: dict,
+                     user: User = Depends(require_role("admin"))):
+    """
+    Resolve a short https://maps.app.goo.gl/xxx link to its final long URL
+    so the dashboard can extract lat/lng. Long links are returned as-is.
+    """
+    url = (body or {}).get("url", "").strip()
+    if not url:
+        raise HTTPException(400, "Missing 'url' in body")
+
+    if not ("goo.gl" in url or "maps.app." in url):
+        return {"url": url}          # already a long link
+
+    import urllib.request
+    req = urllib.request.Request(url, method="HEAD")
+    opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
+    try:
+        with opener.open(req, timeout=8) as resp:
+            return {"url": resp.url}
+    except Exception as e:
+        raise HTTPException(400, f"Could not resolve short link: {e}")
 
 
 @app.get("/")

@@ -4,6 +4,7 @@
 // (assigned -> in_progress), status chips, offline hint banner,
 // and a 🔔 AppBar bell with unread-notification badge.
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -39,12 +40,22 @@ class _TasksScreenState extends State<TasksScreen> {
   bool loading = true;
   Position? _position;
   int unread = 0;
+  Timer? _pollTimer;
 
   @override
   void initState() {
     super.initState();
     _getLocation();
     _load();
+    // B16 live-sync fix: poll for newly assigned inspections every 20 s so an
+    // admin's "Assign Random Inspection" click shows up without a restart.
+    _pollTimer = Timer.periodic(const Duration(seconds: 20), (_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
   }
 
   @override

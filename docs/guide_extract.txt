@@ -1,0 +1,65 @@
+DRISHTI Project — Final QA & Developer Action Guide
+Comprehensive Bug Report, Code Solutions, and Pending Validation Checklist
+Lead QA
+Tester: Pranjal Gowda Date: August 25, 2026
+Target System: SIH 26095 (Drishti Portal) Version: Final (v3.0)
+Executive Summary
+This finalized document aggregates all frontend bugs, logic flaws, missing backend storage requirements, and remaining
+untested platform flows identified during the comprehensive QA session. Exact step-by-step developer fixes are provided
+to facilitate immediate patching.
+Resolved Issues & Code Fixes
+ID Component Issue Description Status
+#001 Admin Web Live Map filters do not hide unmatched institute pins. FIX READY
+#002 Admin Web CCTV streams buffer infinitely due to broken external links. FIX READY
+#003 Mobile App File upload crashes on web target due to `dart:io` dependency. FIX READY
+#004 Admin Web Alert resolution does not reset the backend institute risk score. FIX READY
+MEDIUMBUG #001: Live Map Filters Non-Responsive 
+Step-by-Step Solution:
+1. Open Live Map component (e.g., `LiveMap.jsx`).
+2. Apply a filter to the array before rendering Leaflet markers:
+const filteredInstitutes = institutes.filter(inst => {
+  const matchDist = selectedDistrict === 'All districts' || inst.district === selectedDistrict;
+  const matchScheme = selectedScheme === 'All schemes' || inst.scheme === selectedScheme;
+  return matchDist && matchScheme;
+});
+LOWBUG #002: CCTV Video Streams Infinite Buffer 
+Step-by-Step Solution:
+1. Update CCTV feeds component to use reliable public HLS/MP4 test links.
+2. Add an `onError` attribute to the video tag to gracefully degrade: e.g., show a "Stream Offline" placeholder image
+instead of hanging on a loading spinner. 
+DRISHTI Project — Final Developer Action Guide Page 1 of 2
+Untested Pathways & Action Plan
+The following workflows require validation prior to project demonstration, blocked currently by environment constraints or
+missing data:
+Backend Storage Configuration Validation: (Ref: Architect Audio Note). Once frontend Bug #003 is fixed, we must verify if
+the backend actually possesses an S3 bucket or local `/uploads` directory mapping to store the image. If not, the backend
+will throw a 500 error upon receiving the multipart file.
+Reports & CSV Export UX (B8/B9): The CSV Export button currently fails silently if the data list is empty. Fix: Add
+conditional logic to disable the button or trigger a "No Data" toast notification if `reports.length === 0`. Full CSV payload
+verification is pending actual field data submission.
+Mobile AI Proxy Testing (B14/B15): Running the Flutter app natively on an Android/iOS emulator (`flutter run`) is required
+to properly capture photo streams, trigger the ML backend, and validate the "POSSIBLE PROXY" popup sequence.
+Live Cross-Device Sync (B16): Requires a dual-screen test to ensure an admin "Assign Inspection" click immediately
+triggers a task queue update on a running inspector's mobile device without a hard refresh.
+HIGHBUG #003: MultipartFile Web Crash (`dart:io`) 
+Step-by-Step Solution:
+1. Open `capture_screen.dart`.
+2. Use `kIsWeb` to branch the file upload logic:
+import 'package:flutter/foundation.dart';
+if (kIsWeb) {
+  var bytes = await imageFile.readAsBytes();
+  request.files.add(http.MultipartFile.fromBytes('file', bytes, filename: 'upload.jpg'));
+} else {
+  request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+}
+MEDIUMBUG #004: Alert Resolution vs. Risk Score Sync 
+Step-by-Step Solution:
+1. Open the Alerts frontend component and locate the `handleResolveAlert` function.
+2. Chain a secondary API call to physically update the institute record:
+await api.patch(`/alerts/${alertId}`, { status: 'resolved' });
+await api.patch(`/institutes/${instituteId}`, { risk_score: 0, status: 'safe' });
+• 
+• 
+• 
+• 
+DRISHTI Project — Final Developer Action Guide Page 2 of 2

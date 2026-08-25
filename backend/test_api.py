@@ -16,6 +16,11 @@ Walks the full MONITOR -> DETECT -> VERIFY -> REPORT -> ACT demo flow:
 """
 
 import io
+import sys
+
+# Windows consoles default to cp1252 and crash on emoji output
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from fastapi.testclient import TestClient
 from PIL import Image
@@ -118,6 +123,29 @@ def main():
           f"{alerts[0]['message'][:70]}...")
     r = client.post(f"/alerts/{alerts[0]['id']}/resolve", headers=ah)
     assert r.json()["ok"]
+
+    # QA fix #004 regression check:
+    # resolving an alert MUST lower (or keep equal) the institute risk score,
+    # because unresolved alerts feed the score.
+    inst_id = alerts[0]["institute_id"]
+    live = {i["id"]: i["risk_score"] for i in client.get("/institutes", headers=ah).json()}
+    score_before = live[inst_id]
+
+    # resolve every OPEN alert of this institute so nothing else moves the score
+    open_alerts = [a for a in client.get("/alerts", headers=ah).json()
+                   if a["institute_id"] == inst_id and not a["resolved"]]
+    assert open_alerts, "expected at least one open alert to resolve"
+    for a in open_alerts:
+        assert client.post(f"/alerts/{a['id']}/resolve",
+                           headers=ah).json()["ok"]
+
+    score_after = next(i["risk_score"] for i in
+                       client.get("/institutes", headers=ah).json()
+                       if i["id"] == inst_id)
+    print(f"   risk score of institute #{inst_id}: {score_before} -> "
+          f"{score_after} (after resolving {len(open_alerts)} open alert(s))")
+    assert score_after < score_before, \
+        "risk score did not drop after resolving alerts!"
 
     print("ALL TESTS PASSED ✔")
 

@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { api, haversineKm } from "../api.js";
+import { parseMapsLink, isShortMapsLink } from "../utils/mapsLink.js";
 
 const CHECKLIST = [
   "Staff physically present?",
@@ -115,8 +116,38 @@ export default function DashboardHome({ user, go }) {
     setMsg(`🏛️ ${r.name} added` +
       (r.attendance_generated ? ` · ${r.attendance_generated} days of attendance seeded` : ""));
     setNewInst(EMPTY_INST);
+    setMapsLink("");
     setShowAddInst(false);
     load();
+  }
+
+  // ---------- "who remembers coordinates?" — paste a Google Maps link ----------
+  const [mapsLink, setMapsLink] = useState("");
+  const [locating, setLocating] = useState(false);
+  async function extractCoords() {
+    if (!mapsLink.trim()) return setMsg("⚠ Paste a Google Maps link first.");
+    let url = mapsLink.trim();
+    try {
+      if (isShortMapsLink(url)) {
+        setLocating(true);
+        setMsg("🔗 Resolving short link…");
+        const r = await api("/utils/expand-maps-link",
+          { method: "POST", body: { url } });
+        url = r.url;
+      }
+    } catch {
+      return setMsg("❌ Could not resolve that short link. In Google Maps use "
+        + "Share → Copy link and paste the long URL.");
+    } finally {
+      setLocating(false);
+    }
+    const coords = parseMapsLink(url);
+    if (!coords) {
+      return setMsg("❌ No coordinates found in that link. Open it in Google "
+        + "Maps → Share → Copy link, then paste here.");
+    }
+    setNewInst((f) => ({ ...f, lat: String(coords.lat), lng: String(coords.lng) }));
+    setMsg(`📍 Location captured: ${coords.lat}, ${coords.lng}`);
   }
 
   const dateLine = new Date().toLocaleDateString("en-IN", {
@@ -153,6 +184,17 @@ export default function DashboardHome({ user, go }) {
           </div>
           {showAddInst && (
             <form className="add-inst" onSubmit={addInstitute}>
+              <div className="maps-link-row">
+                <input
+                  placeholder="📍 Paste a Google Maps link — we'll fill lat/lng for you"
+                  value={mapsLink}
+                  onChange={(e) => setMapsLink(e.target.value)}
+                />
+                <button className="btn sm" type="button"
+                        disabled={locating} onClick={extractCoords}>
+                  {locating ? "Resolving…" : "Extract coordinates"}
+                </button>
+              </div>
               <div className="add-inst-grid">
                 <input required placeholder="Institute name *" value={newInst.name} onChange={setField("name")} />
                 <input required placeholder="District *" value={newInst.district} onChange={setField("district")} />

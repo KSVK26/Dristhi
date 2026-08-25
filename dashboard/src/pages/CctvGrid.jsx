@@ -11,13 +11,19 @@ import { api } from "../api.js";
 
 function HlsPlayer({ url }) {
   const ref = useRef(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const video = ref.current;
     if (!video || !url) return;
+    setFailed(false);
     let hls;
     if (Hls.isSupported()) {
-      hls = new Hls();
+      hls = new Hls({ manifestLoadingTimeOut: 8000, levelLoadingTimeOut: 8000 });
+      // QA fix #002: any fatal HLS error -> graceful "offline" tile
+      hls.on(Hls.Events.ERROR, (_evt, data) => {
+        if (data.fatal) setFailed(true);
+      });
       hls.loadSource(url);
       hls.attachMedia(video);
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
@@ -26,7 +32,23 @@ function HlsPlayer({ url }) {
     return () => hls && hls.destroy();
   }, [url]);
 
-  return <video ref={ref} autoPlay muted controls playsInline className="cctv-video" />;
+  if (failed) {
+    return (
+      <div className="cctv-placeholder">
+        <p>⚠ Stream Offline</p>
+        <small>The camera feed could not be reached.</small>
+      </div>
+    );
+  }
+
+  return (
+    <video
+      ref={ref}
+      autoPlay muted controls playsInline
+      className="cctv-video"
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 export default function CctvGrid() {

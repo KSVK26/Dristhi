@@ -10,7 +10,8 @@
 // flags 'possible_proxy' if no humans are visible.
 
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -36,7 +37,9 @@ class CaptureScreen extends StatefulWidget {
 
 class _CaptureScreenState extends State<CaptureScreen> {
   XFile? _photo;
+  Uint8List? _photoBytes; // cross-platform preview (web-safe)
   final Map<int, XFile> _qPhotos = {};   // checklist index -> photo proof
+  final Map<int, Uint8List> _qPhotoBytes = {};
   Position? _position;
   late Map<String, bool> _answers;
   bool _busy = false;
@@ -69,14 +72,24 @@ class _CaptureScreenState extends State<CaptureScreen> {
     final picker = ImagePicker();
     final photo = await picker.pickImage(
         source: ImageSource.camera, imageQuality: 70, maxWidth: 1280);
-    if (photo != null) setState(() => _photo = photo);
+    if (photo != null) {
+      final bytes = await photo.readAsBytes(); // works on web AND mobile
+      setState(() { _photo = photo; _photoBytes = bytes; });
+    }
   }
 
   Future<void> _takeQPhoto(int index) async {
     final picker = ImagePicker();
     final photo = await picker.pickImage(
         source: ImageSource.camera, imageQuality: 60, maxWidth: 1024);
-    if (photo != null) setState(() => _qPhotos[index] = photo);
+    if (photo != null) {
+      final bytes = await photo.readAsBytes(); // web-safe preview
+      setState(() { _qPhotos[index] = photo; _qPhotoBytes[index] = bytes; });
+    }
+  }
+
+  Future<Uint8List?> _readSafe(XFile f) async {
+    try { return await f.readAsBytes(); } catch (_) { return null; }
   }
 
   Future<void> _submit() async {
@@ -94,13 +107,22 @@ class _CaptureScreenState extends State<CaptureScreen> {
         ..fields['inspection_id'] = widget.task['inspection_id'].toString()
         ..fields['geo_lat'] = (_position?.latitude ?? 0).toString()
         ..fields['geo_lng'] = (_position?.longitude ?? 0).toString()
-        ..fields['checklist'] = jsonEncode(_answers)
-        ..files.add(await http.MultipartFile.fromPath('photo', _photo!.path));
+        ..fields['checklist'] = jsonEncode(_answers);
 
-      // attach per-checklist-item photo proofs (q0_photo … q4_photo)
+      // WEB-SAFE UPLOAD FIX (QA Bug #003):
+      // read the image into memory and use fromBytes() — identical behaviour
+      // on Android/iOS and Flutter Web (no dart:io, no fromPath crash).
+      final mainBytes = await _photo!.readAsBytes();
+      req.files.add(http.MultipartFile.fromBytes('photo', mainBytes,
+          filename: 'evidence.jpg'));
+
+      // attach per-question photo proofs (backend expects q0_photo … q4_photo)
       for (final entry in _qPhotos.entries) {
-        req.files.add(await http.MultipartFile.fromPath(
-            'q${entry.key}_photo', entry.value.path));
+        final b = await _readSafe(entry.value);
+        if (b != null) {
+          req.files.add(http.MultipartFile.fromBytes(
+              'q${entry.key}_photo', b, filename: 'q_${entry.key}.jpg'));
+        }
       }
 
       final res = await req.send();
@@ -161,7 +183,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
                       SizedBox(height: 8),
                       Text('Tap to capture evidence photo'),
                     ]))
-                : Image.file(File(_photo!.path), fit: BoxFit.cover),
+                : Image.memory(_photoBytes!, fit: BoxFit.cover),
           ),
         ),
         const SizedBox(height: 8),
@@ -205,7 +227,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
                     onTap: () => _takeQPhoto(i),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.file(File(qp.path),
+                      child: Image.memory(_qPhotoBytes[i]!,
                           width: 56, height: 42, fit: BoxFit.cover),
                     ),
                   ),

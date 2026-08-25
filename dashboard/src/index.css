@@ -380,6 +380,13 @@ button, select { font-family: inherit; }
 
 /* ---- admin: add-institute form (Quick Actions) ---- */
 .add-inst { margin-top: 12px; border-top: 1px solid rgba(255,255,255,.14); padding-top: 12px; }
+.maps-link-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.maps-link-row input {
+  flex: 1; padding: 8px 10px; border-radius: 8px;
+  border: 1px dashed rgba(255,255,255,.35); background: transparent;
+  color: inherit; font-size: 13px;
+}
+.maps-link-row input::placeholder { color: var(--muted); }
 .add-inst-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
 .add-inst-grid input {
   width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px;
