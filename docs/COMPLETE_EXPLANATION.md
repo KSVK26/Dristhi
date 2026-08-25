@@ -201,8 +201,10 @@ prove: "we didn't cherry-pick — replay the seed yourself."
    no gallery pick in real use, so photos can't be borrowed)
 2. geolocator grabs GPS → app shows lat/lng on screen
 3. Inspector answers 5 yes/no checklist switches
+   - Optional: tap **📷 Add photo proof** on any answer (uploads q0–q4 photos)
 4. Submit → multipart/form-data POST /reports with:
-      inspection_id, geo_lat, geo_lng, checklist (JSON), photo (JPEG bytes)
+      inspection_id, geo_lat, geo_lng, checklist (JSON),
+      main photo + optional q0_photo…q4_photo per-answer proofs
 5. Backend:
    a. verifies the inspection belongs to THIS inspector (403 otherwise)
    b. saves photo to uploads/report_<id>_<user>.jpg
@@ -555,8 +557,14 @@ Ownership checks too: an inspector can only start/submit **their own** inspectio
 ## REPORT
 | Endpoint | Inside |
 |---|---|
-| `POST /reports` | **inspector, own task.** multipart upload: photo+GPS+checklist → save file → OpenCV face count → flags → risk recompute → HIGH-risk notification (deduped) → status completed |
-| `GET /reports` | all reports w/ inspection_id + inspector_id (enables "my submissions" filter) |
+| `POST /reports` | **inspector, own task.** multipart upload: main photo + GPS + checklist (+ optional q0–q4 per-answer photos) → save files → OpenCV face count → flags → risk recompute → HIGH-risk notification (deduped) → status completed → auto "📋 official report generated" admin alert |
+| `GET /reports` | all reports w/ inspection_id + inspector_id + `question_photos` map (enables 📷 proof links and "my submissions" filter) |
+| `GET /reports/{id}/document` | compiles the OFFICIAL INSPECTION REPORT live: letterhead, institute + inspector details, GPS + maps link, checklist with per-item photos, AI verdict, current risk score, audit seed if random assignment |
+
+**Admin institute management:** `POST /institutes` (admin only) onboards a new
+institute (name/district/scheme/GPS/contact); optional flag auto-generates 30
+days of healthy attendance so charts and the AI scan work instantly. Powers the
+"➕ Add Institute" form in the dashboard Quick Actions.
 
 ## ACT
 | Endpoint | Inside |

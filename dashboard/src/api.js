@@ -1,7 +1,10 @@
 // DRISHTI dashboard - tiny helper for talking to the FastAPI backend.
 // Every request automatically carries the JWT token saved at login.
-
-const API = "http://localhost:8000";
+//
+// Backend base URL: production builds get VITE_API_URL injected at build time
+// (set it in Vercel/Netlify project settings, no trailing slash needed).
+// Local dev falls back to http://localhost:8000 exactly as before.
+const API = (import.meta.env?.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
 
 export function getToken() {
   return localStorage.getItem("drishti_token");

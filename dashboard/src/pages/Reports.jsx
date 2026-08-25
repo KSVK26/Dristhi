@@ -11,6 +11,7 @@ export default function Reports({ user }) {
   const [openId, setOpenId] = useState(null);
   const [mineOnly, setMineOnly] = useState(false);
   const [myInspectionIds, setMyInspectionIds] = useState([]);
+  const [doc, setDoc] = useState(null);          // auto-generated official report
 
   useEffect(() => {
     api("/reports").then(setReports).catch(console.error);
@@ -20,6 +21,10 @@ export default function Reports({ user }) {
         .catch(() => {});
     }
   }, []);
+
+  async function loadDocument(id) {
+    setDoc(await api(`/reports/${id}/document`).catch(() => null));
+  }
 
   const visible = mineOnly
     ? reports.filter((r) => myInspectionIds.includes(r.inspection_id))
@@ -93,12 +98,27 @@ export default function Reports({ user }) {
                 )}
               </div>
 
-              {/* checklist answers */}
+              {/* checklist answers (+ per-answer photo proof) */}
               <ul className="checklist">
-                {Object.entries(r.checklist).map(([q, a]) => (
-                  <li key={q}>{a === "yes" ? "✅" : "❌"} {q}</li>
+                {Object.entries(r.checklist).map(([q, a], i) => (
+                  <li key={q}>
+                    {a === "yes" || a === true ? "✅" : "❌"} {q}
+                    {r.question_photos?.[String(i)] && (
+                      <>{" "}
+                        <a href={API_BASE + r.question_photos[String(i)]}
+                           target="_blank" rel="noreferrer"
+                           title="Photo proof for this answer">
+                          📷 proof
+                        </a>
+                      </>
+                    )}
+                  </li>
                 ))}
               </ul>
+
+              <button className="btn sm primary" onClick={() => loadDocument(r.id)}>
+                📄 Official Report
+              </button>
 
               {/* mini map of where the photo was taken */}
               {openId === r.id && (
@@ -119,6 +139,78 @@ export default function Reports({ user }) {
           </div>
         ))}
       </div>
+
+      {/* ---------- auto-generated OFFICIAL INSPECTION REPORT ---------- */}
+      {doc && (
+        <div className="modal-overlay" onClick={() => setDoc(null)}>
+          <div className="print-doc" onClick={(e) => e.stopPropagation()}>
+            <div className="doc-head">
+              <h2>{doc.title}</h2>
+              <p>{doc.authority}</p>
+            </div>
+
+            <table className="doc-meta">
+              <tbody>
+                <tr><td>Report ID</td><td><b>#{doc.report_id}</b></td>
+                    <td>Inspection ID</td><td>#{doc.inspection_id}</td></tr>
+                <tr><td>Institute</td><td colSpan={3}><b>{doc.institute.name}</b></td></tr>
+                <tr><td>District / Scheme</td><td colSpan={3}>{doc.institute.district} · {doc.institute.scheme}</td></tr>
+                <tr><td>Contact person</td><td>{doc.institute.contact_person || "—"} ({doc.institute.phone || "—"})</td>
+                    <td>Risk score now</td><td><b>{doc.risk_score_now}/100</b></td></tr>
+                <tr><td>Field inspector</td><td>{doc.inspector.name}</td>
+                    <td>Captured at</td><td>{new Date(doc.captured_at).toLocaleString()}</td></tr>
+                <tr><td>GPS location</td>
+                    <td colSpan={3}>
+                      📍 {doc.gps.lat.toFixed(5)}, {doc.gps.lng.toFixed(5)} —{" "}
+                      <a href={doc.map_link} target="_blank" rel="noreferrer">open in Google Maps</a>
+                    </td></tr>
+                {doc.random_assignment && (
+                  <tr><td>AI assignment</td>
+                      <td colSpan={3}>Audit seed <code>{doc.random_assignment.audit_seed}</code> — replayable &amp; provably fair</td></tr>
+                )}
+              </tbody>
+            </table>
+
+            <img className="doc-mainphoto" src={API_BASE + doc.main_photo_url} alt="main evidence" />
+
+            <h4>Compliance checklist (with per-item photo proof)</h4>
+            <table className="doc-checklist">
+              <tbody>
+                {doc.checklist.map((c, i) => (
+                  <tr key={i}>
+                    <td className={c.answer === "Yes" ? "yes" : "no"}>{c.answer}</td>
+                    <td>{c.question}</td>
+                    <td>
+                      {c.photo_url
+                        ? <a href={API_BASE + c.photo_url} target="_blank" rel="noreferrer">
+                            <img src={API_BASE + c.photo_url} alt="proof" style={{ height: 44, borderRadius: 6 }} />
+                          </a>
+                        : <span className="muted">no photo</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className={"doc-aibox " + (doc.ai_verification.flags.length ? "bad" : "ok")}>
+              {doc.ai_verification.summary}
+              {doc.ai_verification.flags.length > 0 &&
+                ` (${doc.ai_verification.flags.join(", ")})`}
+            </div>
+
+            <div className="doc-signs">
+              <div>_____________________<br />Field Inspector</div>
+              <div>_____________________<br />Oversight Officer, DoSJE</div>
+            </div>
+            <small className="muted">Auto-generated by DRISHTI on {doc.generated_at}. Document ID: DR-{doc.report_id}-{doc.inspection_id}.</small>
+
+            <div className="doc-actions no-print">
+              <button className="btn primary" onClick={() => window.print()}>⬇ Save as PDF / Print</button>
+              <button className="btn" onClick={() => setDoc(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

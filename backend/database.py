@@ -1,22 +1,33 @@
 """
 DRISHTI - Database setup
 ------------------------
-Creates the SQLite database connection and session factory.
-SQLite is used because it needs zero installation (perfect for prototypes).
-For production, swap the URL below for PostgreSQL:
-    postgresql://user:password@localhost/drishti
+LOCAL DEVELOPMENT: SQLite (zero installation, perfect for prototypes).
+HOSTED / PRODUCTION: set the DATABASE_URL environment variable to any
+PostgreSQL connection string — Supabase, Neon, Render Postgres all work:
+
+    DATABASE_URL=postgresql://postgres:YOUR-PASSWORD@db.xxxx.supabase.co:5432/postgres
+
+This IS the famous "one-line SQLite -> PostgreSQL migration": every query in
+the codebase goes through SQLAlchemy, so nothing else has to change.
 """
+
+import os
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# SQLite database file lives next to this folder
-SQLALCHEMY_DATABASE_URL = "sqlite:///./drishti.db"
+# Env var wins when present (Render/Supabase); otherwise local SQLite file.
+SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./drishti.db")
 
-# check_same_thread=False is required only for SQLite + FastAPI
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    # check_same_thread=False is required only for SQLite + FastAPI
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+    )
+else:
+    # pool_pre_ping=True drops dead pooled connections (managed Postgres
+    # providers like Supabase close idle connections aggressively).
+    engine = create_engine(SQLALCHEMY_DATABASE_URL, pool_pre_ping=True)
 
 # Each API request gets its own DB session
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

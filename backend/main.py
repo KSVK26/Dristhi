@@ -17,7 +17,10 @@ Endpoint map (grouped by the MONITOR -> DETECT -> VERIFY -> REPORT -> ACT flow):
 
 import json
 import os
+import random
 import shutil
+
+from datetime import date, datetime, timedelta
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,7 +30,7 @@ from sqlalchemy.orm import Session
 
 import ai_engine
 from auth import create_access_token, get_current_user, require_role, verify_password
-from database import get_db
+from database import engine, get_db
 from models import Alert, AttendanceLog, Inspection, Institute, Report, User
 
 app = FastAPI(
@@ -49,6 +52,27 @@ os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
+def _ensure_schema_columns():
+    """
+    Tiny self-healing migration for columns added after the first deployment.
+    Runs on every boot; each ALTER is a no-op once applied. Works identically
+    on SQLite (local dev) and PostgreSQL (Supabase/Render) — no manual DB work.
+    """
+    from sqlalchemy import text
+    statements = [
+        "ALTER TABLE reports ADD COLUMN question_photos_json TEXT DEFAULT '{}'",
+    ]
+    with engine.begin() as conn:
+        for stmt in statements:
+            try:
+                conn.execute(text(stmt))
+            except Exception:
+                pass  # column already exists
+
+
+_ensure_schema_columns()
+
+
 # ================================================================ schemas
 class LoginRequest(BaseModel):
     username: str
@@ -61,6 +85,18 @@ class AssignRequest(BaseModel):
 
 class VCRequest(BaseModel):
     institute_id: int
+
+
+class InstituteCreate(BaseModel):
+    """Admin onboarding of a new institute (POST /institutes)."""
+    name: str
+    district: str
+    scheme: str
+    lat: float
+    lng: float
+    contact_person: str = ""
+    phone: str = ""
+    generate_attendance: bool = True   # 30 days of healthy logs => AI scan + chart work instantly
 
 
 # ================================================================== AUTH
@@ -159,6 +195,62 @@ CCTV_STREAMS = [
 @app.get("/cctv/streams")
 def cctv_streams(user: User = Depends(get_current_user)):
     return CCTV_STREAMS
+
+
+# ====================================================== MANAGE (admin CRUD)
+@app.post("/institutes", status_code=201)
+def create_institute(body: InstituteCreate,
+                     db: Session = Depends(get_db),
+                     user: User = Depends(require_role("admin"))):
+    """
+    Admin panel: onboard a new institute without touching seed.py.
+    Optionally generates 30 days of healthy attendance (same pattern as
+    seed.py) so map colours, the attendance chart and AI anomaly scans all
+    work immediately on the new pin.
+    """
+    inst = Institute(
+        name=body.name.strip(), district=body.district.strip(),
+        scheme=body.scheme.strip(), lat=body.lat, lng=body.lng,
+        contact_person=body.contact_person.strip() or None,
+        phone=body.phone.strip() or None,
+        risk_score=10,                       # neutral starting score, like seed.py
+    )
+    db.add(inst)
+    db.commit()
+    db.refresh(inst)
+
+    generated_days = 0
+    if body.generate_attendance:
+        rng = random.Random(inst.id)         # deterministic per institute
+        expected = rng.choice([40, 50, 60, 80])
+        today = date.today()
+        for d in range(30):
+            day = today - timedelta(days=d)
+            if day.weekday() == 6:           # Sunday holiday, matches seed.py
+                continue
+            db.add(AttendanceLog(
+                institute_id=inst.id, log_date=day,
+                expected=expected,
+                present=int(expected * rng.uniform(0.88, 0.99)),
+                face_verified=rng.random() > 0.15,
+            ))
+            generated_days += 1
+        db.commit()
+
+    db.add(Alert(
+        type="institute_added",
+        severity="low",
+        message=f"{inst.name} ({inst.district}) onboarded by {user.name}.",
+    ))
+    db.commit()
+
+    return {
+        "id": inst.id, "name": inst.name, "district": inst.district,
+        "scheme": inst.scheme, "lat": inst.lat, "lng": inst.lng,
+        "risk_score": inst.risk_score,
+        "contact_person": inst.contact_person, "phone": inst.phone,
+        "attendance_generated": generated_days,
+    }
 
 
 # ================================================================ DETECT
@@ -391,7 +483,12 @@ async def submit_report(
     geo_lat: float = Form(...),
     geo_lng: float = Form(...),
     checklist: str = Form(...),           # JSON string of yes/no answers
-    photo: UploadFile = File(...),
+    photo: UploadFile = File(...),        # main overview evidence (required)
+    q0_photo: UploadFile = File(None),    # optional per-checklist-item photos
+    q1_photo: UploadFile = File(None),
+    q2_photo: UploadFile = File(None),
+    q3_photo: UploadFile = File(None),
+    q4_photo: UploadFile = File(None),
     db: Session = Depends(get_db),
     user: User = Depends(require_role("inspector")),
 ):
@@ -413,6 +510,19 @@ async def submit_report(
     with open(path, "wb") as f:
         f.write(image_bytes)
 
+    # ---- optional per-checklist-item photos (photo proof per answer) ----
+    question_files = [q0_photo, q1_photo, q2_photo, q3_photo, q4_photo]
+    question_photos = {}
+    for idx, qfile in enumerate(question_files):
+        if qfile is None or not qfile.filename:
+            continue
+        qext = os.path.splitext(qfile.filename or "q.jpg")[1] or ".jpg"
+        qpath = os.path.join(
+            "uploads", f"report_{inspection_id}_{user.id}_q{idx}{qext}")
+        with open(qpath, "wb") as f:
+            f.write(await qfile.read())
+        question_photos[str(idx)] = "/" + qpath.replace("\\", "/")
+
     # ---- AI proxy check ----
     face_count = ai_engine.detect_faces_in_photo(image_bytes)
     flags = []
@@ -427,6 +537,7 @@ async def submit_report(
         photo_path=path.replace("\\", "/"),
         checklist_json=checklist,
         ai_flags=",".join(flags),
+        question_photos_json=json.dumps(question_photos),
     )
     db.add(report)
 
@@ -444,6 +555,16 @@ async def submit_report(
             audience="admin",
         ))
 
+    # ---- auto-generate the official report event (nobody writes it by hand)
+    db.add(Alert(
+        type="inspection_completed",
+        severity="low",
+        message=(f"📋 Inspection #{inspection.id} completed at {inst.name} "
+                 f"by {user.name}. Official report generated automatically."),
+        institute_id=inst.id,
+        audience="admin",
+    ))
+
     ai_engine.compute_risk_score(db, inst)
     ai_engine.notify_high_risk(db, inst)   # admin notification if score >= 70
     db.commit()
@@ -455,6 +576,8 @@ async def submit_report(
         "faces_detected": face_count,
         "checklist_questions": CHECKLIST_QUESTIONS,
         "photo_url": f"/{report.photo_path}",
+        "question_photos": question_photos,
+        "document_url": f"/reports/{report.id}/document",
     }
 
 
@@ -474,9 +597,67 @@ def list_reports(db: Session = Depends(get_db),
             "photo_url": f"/{r.photo_path}",
             "checklist": json.loads(r.checklist_json),
             "ai_flags": [f for f in r.ai_flags.split(",") if f],
+            "question_photos": json.loads(r.question_photos_json or "{}"),
             "created_at": str(r.created_at),
         })
     return out
+
+
+# ==================================================== AUTO REPORT DOCUMENT
+@app.get("/reports/{report_id}/document")
+def report_document(report_id: int, db: Session = Depends(get_db),
+                    user: User = Depends(get_current_user)):
+    """
+    Auto-generated OFFICIAL INSPECTION REPORT — compiled live from the data
+    the moment an inspector submits. Nobody writes it by hand; nothing is
+    stored stale. The dashboard renders this as a print/PDF-ready document.
+    """
+    r = db.get(Report, report_id)
+    if not r:
+        raise HTTPException(404, "Report not found")
+    insp = db.get(Inspection, r.inspection_id)
+    inst = db.get(Institute, insp.institute_id)
+    inspector = db.get(User, insp.inspector_id)
+
+    answers = json.loads(r.checklist_json)
+    qphotos = json.loads(r.question_photos_json or "{}")
+    checklist_rows = [
+        {
+            "question": q,
+            "answer": "Yes" if a in (True, "yes", "true", True) else "No",
+            "photo_url": qphotos.get(str(i)),
+        }
+        for i, (q, a) in enumerate(answers.items())
+    ]
+
+    return {
+        "title": "OFFICIAL INSPECTION REPORT",
+        "authority": "Dept. of Social Justice & Empowerment · DRISHTI Platform",
+        "report_id": r.id,
+        "inspection_id": r.inspection_id,
+        "generated_at": datetime.utcnow().strftime("%d %b %Y, %H:%M UTC"),
+        "institute": {
+            "name": inst.name, "district": inst.district,
+            "scheme": inst.scheme,
+            "contact_person": inst.contact_person, "phone": inst.phone,
+        },
+        "inspector": {"name": inspector.name if inspector else "Unknown",
+                      "username": inspector.username if inspector else "-"},
+        "captured_at": str(r.created_at),
+        "gps": {"lat": r.geo_lat, "lng": r.geo_lng},
+        "map_link": f"https://www.google.com/maps?q={r.geo_lat},{r.geo_lng}",
+        "checklist": checklist_rows,
+        "main_photo_url": f"/{r.photo_path}",
+        "ai_verification": {
+            "flags": [f for f in r.ai_flags.split(",") if f],
+            "summary": ("⚠ AI raised flags on this evidence — review required."
+                        if r.ai_flags else
+                        "✔ Evidence passed automated verification."),
+        },
+        "risk_score_now": inst.risk_score,
+        "random_assignment": (
+            {"audit_seed": insp.assignment_seed} if insp.is_random else None),
+    }
 
 
 # =================================================================== ACT

@@ -95,6 +95,8 @@ class Report(Base):
     photo_path = Column(String(300), nullable=False)   # file saved under backend/uploads/
     checklist_json = Column(Text, nullable=False)      # answers to the yes/no checklist
     ai_flags = Column(String(300), default="")         # e.g. 'possible_proxy', 'geo_mismatch'
+    # optional per-checklist-item evidence: {"0": "/uploads/..._q0.jpg", ...}
+    question_photos_json = Column(Text, default="{}")
     created_at = Column(DateTime, default=datetime.utcnow)
 
     inspection = relationship("Inspection", back_populates="reports")

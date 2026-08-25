@@ -182,17 +182,19 @@ no faces = suspected proxy reporting.
 2. Tap the grey photo box → **Allow camera** → photograph an **empty wall or
    corridor** (no people!).
 3. Confirm **📍 GPS coordinates** appear under the photo.
-4. Tap **Submit Geo-Tagged Report** → wait ~5 s (photo uploads to the PC).
+4. NEW — tap **📷 Add photo proof** on 1–2 checklist answers and take extra
+   close-up photos; thumbnails appear beside those answers.
+5. Tap **Submit Geo-Tagged Report** → wait ~5 s (photos upload to the PC).
 
 **✅ You should see:** **"⚠ AI Flag Raised — POSSIBLE PROXY"** dialog
 (because the wall has no faces).
 
-5. Repeat with a photo **of a person's face** (a colleague).
+6. Repeat with a photo **of a person's face** (a colleague).
    **✅ You should see:** **"✅ Report Submitted — N face(s) verified"**.
 
-6. **Cross-check on the dashboard** (lead's PC, :5173 as admin):
+7. **Cross-check on the dashboard** (lead's PC, :5173 as admin):
    🚨 Alerts shows the red **proxy** alert; 📋 Reports shows both photos with
-   their GPS pins on the mini-map.
+   their GPS pins on the mini-map and **📷 proof** links beside answered items.
 
 > ☐ M4.2 Pass (proxy flag) ☐ Pass (face verified) ☐ Fail
 

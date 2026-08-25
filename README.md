@@ -23,6 +23,9 @@ A centralized monitoring system with three components:
 - **Mobile inspection module** → camera evidence + GPS geo-tagging + checklist
 - **AI random inspection assignment** → seeded RNG (auditable fairness) weighted by distance
 - **Geo-tagged reports & live evidence** → photo + GPS stored per report
+- **📷 Photo proof per checklist item** → every yes/no answer can carry its own geo-tagged photo
+- **📄 Auto-generated Official Inspection Report** → print/PDF-ready document compiled from each submission (photos, GPS, AI verdict, audit seed) — nobody writes reports by hand
+- **➕ Admin institute onboarding** → onboard institutes from the dashboard; attendance history auto-generated so AI works instantly
 - **AI anomaly & attendance analytics** → IsolationForest flags outlier institutes
 - **Proxy detection** → OpenCV face detection on evidence (`possible_proxy` flag)
 - **Notifications** → 🔔 bell + page; admins get high-risk/proxy/anomaly alerts,
@@ -33,7 +36,7 @@ A centralized monitoring system with three components:
 
 ### 👑 Admin — "DoSJE Command Center" (`admin / admin123`)
 - 4 live stat cards: Institutes · High-risk · Open alerts · Evidence reports
-- **Quick Actions**: 🤖 Run AI Anomaly Scan · 🎯 Assign Random Inspection · 📞 Start Surprise VC
+- **Quick Actions**: 🤖 Run AI Anomaly Scan · 🎯 Assign Random Inspection · 📞 Start Surprise VC · ➕ Add Institute
 - **Surprise VC panel** with join links · recent alerts feed
 - District + Scheme filters on the Live Map · **CSV export** of the report register
 - Can resolve alerts (lowers the institute's risk score)
@@ -61,6 +64,10 @@ python seed.py                    # creates demo data
 python -m uvicorn main:app --reload --port 8000
 ```
 Interactive API docs: http://localhost:8000/docs
+
+> 🌐 **Hosting:** set `DATABASE_URL` to a PostgreSQL URI (Supabase/Neon) and
+> everything runs on managed Postgres instead of SQLite — see
+> `docs/DEPLOYMENT_PLAN.md` for free hosting step by step.
 
 ### 2. Dashboard (port 5173)
 ```bash
@@ -92,12 +99,13 @@ flutter run                       # emulator or USB phone
 1. **Admin dashboard** → stat cards + click 🤖 **Run AI Anomaly Scan** → Dwarka flagged
 2. Pick an institute → 🎯 **Assign Random Inspection** → nearest PMU officer chosen, audit seed shown
 3. Open the **field app** (ravi) → 🔔 notification arrived → task visible with Navigate link
-4. In the field app: *Capture Evidence* → take a photo → submit
+4. In the field app: *Capture Evidence* → take a photo → **add 📷 photo proof to 1–2 checkboxes** → submit
 5. No faces in photo? → **⚠ POSSIBLE PROXY** → admin's bell lights up 🚨
 6. Admin → **Alerts** → resolve → risk score drops
 7. **CCTV Feeds** → 3 live HLS streams (+ your phone via DroidCam)
 8. 📞 **Start Surprise VC** → Jitsi room opens; inspectors notified too
-9. **Reports → Export CSV** → transparency register download
+9. **📋 Reports → 📄 Official Report** → auto-generated document with photos, GPS, AI verdict & audit seed → ⬇ Save as PDF live on stage
+10. **Reports → Export CSV** → transparency register download
 
 ## 🧪 Tests
 

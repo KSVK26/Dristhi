@@ -13,6 +13,12 @@ const CHECKLIST = [
   "Facilities clean & usable?",
 ];
 
+// Blank template for the admin "➕ Add Institute" form.
+const EMPTY_INST = {
+  name: "", district: "", scheme: "", lat: "", lng: "",
+  contact_person: "", phone: "", generate_attendance: true,
+};
+
 function StatCard({ icon, tint, label, value, sub }) {
   return (
     <div className="stat-card">
@@ -34,6 +40,13 @@ export default function DashboardHome({ user, go }) {
   const [me, setMe] = useState(null);
   const [msg, setMsg] = useState("");
   const [pickInst, setPickInst] = useState("");
+  const [showAddInst, setShowAddInst] = useState(false);
+  const [newInst, setNewInst] = useState(EMPTY_INST);
+  const setField = (key) => (e) =>
+    setNewInst((f) => ({
+      ...f,
+      [key]: e.target.type === "checkbox" ? e.target.checked : e.target.value,
+    }));
 
   const load = async () => {
     setInstitutes(await api("/institutes").catch(() => []));
@@ -90,6 +103,21 @@ export default function DashboardHome({ user, go }) {
     setMsg(r ? `📞 VC room ready: ${r.url}` : "❌ Could not start VC");
     load();
   }
+  async function addInstitute(e) {
+    e.preventDefault();
+    const r = await api("/institutes", {
+      method: "POST",
+      body: { ...newInst, lat: parseFloat(newInst.lat), lng: parseFloat(newInst.lng) },
+    }).catch((err) => ({ error: err.message }));
+    if (!r || r.error) {
+      return setMsg("❌ Could not add institute" + (r?.error ? `: ${r.error}` : ""));
+    }
+    setMsg(`🏛️ ${r.name} added` +
+      (r.attendance_generated ? ` · ${r.attendance_generated} days of attendance seeded` : ""));
+    setNewInst(EMPTY_INST);
+    setShowAddInst(false);
+    load();
+  }
 
   const dateLine = new Date().toLocaleDateString("en-IN", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
@@ -119,7 +147,31 @@ export default function DashboardHome({ user, go }) {
             </select>
             <button className="btn" onClick={assign}>🎯 Assign Inspection</button>
             <button className="btn" onClick={startVC}>📞 Start Surprise VC</button>
+            <button className="btn" onClick={() => setShowAddInst((s) => !s)}>
+              ➕ Add Institute
+            </button>
           </div>
+          {showAddInst && (
+            <form className="add-inst" onSubmit={addInstitute}>
+              <div className="add-inst-grid">
+                <input required placeholder="Institute name *" value={newInst.name} onChange={setField("name")} />
+                <input required placeholder="District *" value={newInst.district} onChange={setField("district")} />
+                <input required placeholder="DoSJE scheme *" value={newInst.scheme} onChange={setField("scheme")} />
+                <input required placeholder="Latitude * e.g. 28.61" inputMode="decimal" value={newInst.lat} onChange={setField("lat")} />
+                <input required placeholder="Longitude * e.g. 77.20" inputMode="decimal" value={newInst.lng} onChange={setField("lng")} />
+                <input placeholder="Contact person" value={newInst.contact_person} onChange={setField("contact_person")} />
+                <input placeholder="Phone" value={newInst.phone} onChange={setField("phone")} />
+              </div>
+              <div className="add-inst-foot">
+                <label>
+                  <input type="checkbox" checked={newInst.generate_attendance}
+                         onChange={setField("generate_attendance")} />{" "}
+                  Generate 30 days of sample attendance (AI scan &amp; charts work instantly)
+                </label>
+                <button className="btn primary sm" type="submit">Save institute</button>
+              </div>
+            </form>
+          )}
           {msg && <div className="qa-msg">{msg}</div>}
         </div>
       )}

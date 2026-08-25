@@ -459,3 +459,7 @@ Anything goes — the full 50-question bank with answers is in
   verification" (bottom of slide 6)
 - **If probed on slide 5's "Offline Caching & Sync" box**: capture already
   decoupled from sync; queue-and-forward = first roadmap item
+- **NEW demo weapons (mention even if not shown)**: ➕ Add Institute from the
+  admin panel · 📷 photo proof per checkbox · 📄 Official Inspection Report
+  auto-generated → Save-as-PDF on stage · deployed online (Render + Supabase,
+  ₹0) — "the one-line SQLite→Postgres migration, demonstrated live"

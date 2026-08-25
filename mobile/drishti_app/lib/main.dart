@@ -17,15 +17,23 @@ import 'dart:convert';
 import 'app_shell.dart';
 
 // Backend URL per platform:
-//   Web (Chrome/Edge)  -> localhost works directly
+//   Web (Chrome/Edge)  -> DRISHTI_API dart-define if provided, else localhost
 //   Android EMULATOR   -> 10.0.2.2 is the emulator's alias for your PC
-//   PHYSICAL PHONE     -> type your PC's WiFi IP on the login screen
-//                         (e.g. http://192.168.1.10:8000) — it is remembered.
+//   PHYSICAL PHONE     -> type your PC's WiFi IP (or the hosted URL) on the
+//                         login screen — it is remembered.
+//
+// HOSTED FIELD APP (Netlify Drop / Firebase Hosting): bake the deployed
+// backend URL in at build time, e.g.
+//   flutter build web --dart-define=DRISHTI_API=https://drishti-api.onrender.com
 //
 // kApiBase is a MUTABLE global: the login screen overwrites it with the
 // value typed into the "Server address" box before signing in.
-String kApiBase =
-    kIsWeb ? 'http://localhost:8000' : 'http://10.0.2.2:8000';
+const String kHostedApiBase = String.fromEnvironment(
+  'DRISHTI_API',
+  defaultValue: 'http://localhost:8000',
+);
+
+String kApiBase = kIsWeb ? kHostedApiBase : 'http://10.0.2.2:8000';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

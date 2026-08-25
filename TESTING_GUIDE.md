@@ -372,15 +372,22 @@ tamper-proof register that can be exported.
 
 1. Click **📋 Reports** in the sidebar.
 2. **✅ You should see:** cards with an evidence **photo**, institute name, a green
-   **✔ AI verified** or red **⚠ possible proxy** tag, and ✅/❌ checklist answers.
+   **✔ AI verified** or red **⚠ possible proxy** tag, and ✅/❌ checklist answers —
+   each answer with photo proof shows a **📷 proof** link.
 3. **Click the photo** on any card → a small map appears below showing exactly
    **where the photo was taken** (GPS pin). Click the photo again to hide it.
-4. Click **⬇ Export CSV** (top right) → a `.csv` file downloads → open it in Excel.
+4. Click **📄 Official Report** on any card → the **auto-generated official
+   inspection document** opens: DoSJE letterhead, institute & inspector details,
+   GPS + Google-Maps link, main photo, checklist table with per-answer photos,
+   AI verdict, risk score, and the fairness audit seed for random assignments.
+5. Click **⬇ Save as PDF / Print** → your browser's print dialog shows ONLY the
+   document → save it as a PDF. Close the modal afterwards.
+6. Click **⬇ Export CSV** (top right) → a `.csv` file downloads → open it in Excel.
 
 **✅ You should see:** one row per report with ID, institute, date, GPS coordinates,
 AI flags, and checklist answers.
 
-> ☐ B9 Pass ☐ B9 Fail
+> ☐ B9 Pass ☐ B9 Fail ☐ Official Report PDF saved
 
 ---
 
@@ -487,6 +494,9 @@ faces in the photo — **zero faces = suspected fake/proxy reporting**.
    - Check the line under the photo says **📍 with GPS coordinates** (allow
      location access if asked).
    - Flip the 5 checklist switches (they start ON = yes).
+   - NEW — under each switch there's a **📷 Add photo proof** button: tap it on
+     1–2 answers (e.g. "Records / registers available?") and take an extra
+     photo. A thumbnail appears next to the answer; ✕ removes it.
 2. Tap **Submit Geo-Tagged Report** → wait ~3 seconds.
 
 **✅ You should see — TWO outcomes:**
@@ -530,7 +540,7 @@ and VC calls — same feed as the dashboard bell.
 | 3 | Admin | 🎯 Assign Random Inspection → inspector + seed shown | Random AI assignment, auditable |
 | 4 | Ravi (:5174) | 🔔 Alerts tab → assignment notification arrived | Real-time notification |
 | 5 | Ravi | My Tasks → ▶ Start → status = In progress | Mobile inspection module |
-| 6 | Ravi | Navigate to site → Capture Evidence → photo of empty wall → Submit | Geo-tagged live evidence |
+| 6 | Ravi | Navigate to site → Capture Evidence → photo of empty wall + 📷 proof on one checkbox → Submit | Geo-tagged live evidence |
 | 7 | AI (automatic) | 0 faces → **POSSIBLE PROXY** flag | AI proxy detection, anti fake-reporting |
 | 8 | Ravi | sees ⚠ warning dialog instantly | Transparency to field staff |
 | 9 | Admin (:5173) | 🔔 bell → red HIGH alert arrived | Real-time oversight |

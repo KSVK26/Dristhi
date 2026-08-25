@@ -36,6 +36,7 @@ class CaptureScreen extends StatefulWidget {
 
 class _CaptureScreenState extends State<CaptureScreen> {
   XFile? _photo;
+  final Map<int, XFile> _qPhotos = {};   // checklist index -> photo proof
   Position? _position;
   late Map<String, bool> _answers;
   bool _busy = false;
@@ -67,8 +68,15 @@ class _CaptureScreenState extends State<CaptureScreen> {
   Future<void> _takePhoto() async {
     final picker = ImagePicker();
     final photo = await picker.pickImage(
-      source: ImageSource.camera, imageQuality: 70, maxWidth: 1280);
+        source: ImageSource.camera, imageQuality: 70, maxWidth: 1280);
     if (photo != null) setState(() => _photo = photo);
+  }
+
+  Future<void> _takeQPhoto(int index) async {
+    final picker = ImagePicker();
+    final photo = await picker.pickImage(
+        source: ImageSource.camera, imageQuality: 60, maxWidth: 1024);
+    if (photo != null) setState(() => _qPhotos[index] = photo);
   }
 
   Future<void> _submit() async {
@@ -88,6 +96,12 @@ class _CaptureScreenState extends State<CaptureScreen> {
         ..fields['geo_lng'] = (_position?.longitude ?? 0).toString()
         ..fields['checklist'] = jsonEncode(_answers)
         ..files.add(await http.MultipartFile.fromPath('photo', _photo!.path));
+
+      // attach per-checklist-item photo proofs (q0_photo … q4_photo)
+      for (final entry in _qPhotos.entries) {
+        req.files.add(await http.MultipartFile.fromPath(
+            'q${entry.key}_photo', entry.value.path));
+      }
 
       final res = await req.send();
       final body = await res.stream.bytesToString();
@@ -165,13 +179,48 @@ class _CaptureScreenState extends State<CaptureScreen> {
         ]),
         const Divider(height: 28),
 
-        // ---------- checklist ----------
-        ...kQuestions.map((q) => SwitchListTile(
-          title: Text(q, style: const TextStyle(fontSize: 15)),
-          value: _answers[q]!,
-          activeThumbColor: Colors.green,
-          onChanged: (v) => setState(() => _answers[q] = v),
-        )),
+        // ---------- checklist (each answer can carry its own photo proof) ----------
+        ...List.generate(kQuestions.length, (i) {
+          final q = kQuestions[i];
+          final qp = _qPhotos[i];
+          return Column(children: [
+            SwitchListTile(
+              title: Text(q, style: const TextStyle(fontSize: 15)),
+              value: _answers[q]!,
+              activeThumbColor: Colors.green,
+              onChanged: (v) => setState(() => _answers[q] = v),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
+              child: Row(children: [
+                OutlinedButton.icon(
+                  onPressed: () => _takeQPhoto(i),
+                  icon: const Icon(Icons.photo_camera, size: 18),
+                  label: Text(qp == null ? 'Add photo proof' : 'Retake',
+                      style: const TextStyle(fontSize: 12)),
+                ),
+                if (qp != null) ...[
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () => _takeQPhoto(i),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(File(qp.path),
+                          width: 56, height: 42, fit: BoxFit.cover),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(Icons.verified, size: 16, color: Colors.green),
+                  IconButton(
+                    tooltip: 'Remove photo',
+                    icon: const Icon(Icons.close, size: 16),
+                    onPressed: () => setState(() => _qPhotos.remove(i)),
+                  ),
+                ],
+              ]),
+            ),
+          ]);
+        }),
 
         if (_error != null)
           Padding(padding: const EdgeInsets.only(top: 10),

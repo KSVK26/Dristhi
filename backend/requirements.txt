@@ -7,3 +7,4 @@ scikit-learn
 opencv-python-headless<5
 pillow
 python-multipart
+psycopg2-binary      # PostgreSQL driver — only used when DATABASE_URL is set (Supabase/Neon/Render)
