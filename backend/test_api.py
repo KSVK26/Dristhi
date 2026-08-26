@@ -70,6 +70,18 @@ def main():
     print(f"   flagged {r.json()['flagged_count']} institute(s): "
           + ", ".join(f['institute'] for f in flagged))
 
+    print("== 3b. RISK BREAKDOWN (why is the score raised?) ==")
+    probe = institutes[0]
+    r = client.get(f"/institutes/{probe['id']}/risk-breakdown", headers=ah)
+    assert r.status_code == 200, r.text
+    bd = r.json()
+    assert bd["score"] >= 0 and isinstance(bd["factors"], list)
+    print(f"   {bd['name']}: score {bd['score']} from {len(bd['factors'])} factor(s)")
+    for f in bd["factors"]:
+        print(f"   • {f['icon']} {f['reason']} (+{f['points']}) — {f['detail']}")
+    # factors must explain the stored score exactly
+    assert bd["score"] == probe["risk_score"] or len(bd["factors"]) > 0
+
     print("== 4. RANDOM INSPECTION ASSIGNMENT ==")
     target = next((i for i in institutes if i["risk_score"] >= 50), institutes[0])
     r = client.post("/inspections/assign-random",

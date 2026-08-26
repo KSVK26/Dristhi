@@ -322,6 +322,22 @@ button, select { font-family: inherit; }
 .risk-badge.low { background: var(--green); }
 .risk-badge.mid { background: var(--amber); }
 .risk-badge.high { background: var(--red); }
+
+/* ---------- "why this risk?" explanation ---------- */
+.risk-why {
+  margin: 10px 0; background: #fff8e1; border: 1px solid #ffe082;
+  border-radius: 8px; padding: 8px 12px; font-size: 13px;
+}
+.risk-why b { display: block; margin-bottom: 4px; }
+.risk-why.ok {
+  background: #e8f5e9; border-color: #c8e6c9; color: #2e7d32;
+}
+.risk-factor {
+  display: flex; justify-content: space-between; gap: 8px;
+  padding: 3px 0; border-bottom: 1px dashed rgba(0,0,0,.08);
+}
+.risk-factor:last-of-type { border-bottom: none; }
+.risk-factor b { color: #e65100; white-space: nowrap; }
 .actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
 .toast {
   position: absolute; bottom: 16px; left: 16px; right: 16px;

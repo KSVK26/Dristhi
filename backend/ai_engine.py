@@ -168,22 +168,38 @@ def detect_faces_in_photo(image_bytes: bytes) -> int:
 
 
 # ------------------------------------------------------- risk scoring
-def compute_risk_score(db: Session, institute: Institute) -> int:
+def risk_factors(db: Session, institute: Institute) -> tuple[int, list[dict]]:
     """
-    Simple transparent formula (easy to explain to judges):
+    Transparent, explainable scoring. Returns (score, factors) so the
+    dashboard can show WHY the risk is what it is:
       base 10
       + up to 40  from unresolved alerts (high=20, medium=10)
       + up to 30  from overdue inspections (10 each)
       + up to 20  from low average attendance ratio
+    Each factor: {"icon", "reason", "points", "detail"}.
     """
+    factors = []
     score = 10
 
+    # 1. unresolved alerts
     unresolved = db.query(Alert).filter(
         Alert.institute_id == institute.id, Alert.resolved.is_(False)
     ).all()
-    for a in unresolved:
-        score += {"high": 20, "medium": 10}.get(a.severity, 5)
+    if unresolved:
+        pts = sum({"high": 20, "medium": 10}.get(a.severity, 5) for a in unresolved)
+        by_type = {}
+        for a in unresolved:
+            by_type[a.type] = by_type.get(a.type, 0) + 1
+        detail = " · ".join(f"{t.replace('_', ' ')} ×{n}" for t, n in by_type.items())
+        factors.append({
+            "icon": "🚨",
+            "reason": f"{len(unresolved)} unresolved alert(s)",
+            "points": min(pts, 40),
+            "detail": detail,
+        })
+        score += min(pts, 40)
 
+    # 2. inspections still open
     overdue = (
         db.query(Inspection)
         .filter(
@@ -192,8 +208,17 @@ def compute_risk_score(db: Session, institute: Institute) -> int:
         )
         .count()
     )
-    score += min(overdue * 10, 30)
+    if overdue:
+        pts = min(overdue * 10, 30)
+        factors.append({
+            "icon": "⏰",
+            "reason": f"{overdue} inspection(s) not completed",
+            "points": pts,
+            "detail": "surprise checks still open",
+        })
+        score += pts
 
+    # 3. weak attendance
     logs = (
         db.query(AttendanceLog)
         .filter(AttendanceLog.institute_id == institute.id)
@@ -202,9 +227,24 @@ def compute_risk_score(db: Session, institute: Institute) -> int:
     if logs:
         avg_ratio = sum(l.present / max(l.expected, 1) for l in logs) / len(logs)
         if avg_ratio < 0.9:
-            score += int((0.9 - avg_ratio) * 200)  # up to ~20 points
+            pts = int((0.9 - avg_ratio) * 200)
+            factors.append({
+                "icon": "📉",
+                "reason": f"Attendance averaging {round(avg_ratio * 100)}% of expected",
+                "points": pts,
+                "detail": "below the 90% compliance line",
+            })
+            score += pts
 
-    institute.risk_score = max(0, min(score, 100))
+    return max(0, min(score, 100)), factors
+
+
+def compute_risk_score(db: Session, institute: Institute) -> int:
+    """
+    Update and return the institute's risk score (same numbers as before —
+    now derived from risk_factors so the UI can explain them).
+    """
+    institute.risk_score = risk_factors(db, institute)[0]
     db.commit()
     return institute.risk_score
 

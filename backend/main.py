@@ -162,6 +162,28 @@ def institute_detail(institute_id: int, db: Session = Depends(get_db),
     }
 
 
+@app.get("/institutes/{institute_id}/risk-breakdown")
+def institute_risk_breakdown(institute_id: int, db: Session = Depends(get_db),
+                             user: User = Depends(get_current_user)):
+    """
+    Explain WHY an institute's risk score is what it is:
+    returns the score plus each contributing factor (alerts,
+    incomplete inspections, weak attendance).
+    """
+    inst = db.get(Institute, institute_id)
+    if not inst:
+        raise HTTPException(404, "Institute not found")
+    score, factors = ai_engine.risk_factors(db, inst)
+    return {
+        "institute_id": institute_id,
+        "name": inst.name,
+        "score": score,
+        "factors": factors,
+        "hint": ("Resolve the open alerts and complete pending inspections "
+                 "to lower this score." if factors else None),
+    }
+
+
 @app.get("/attendance/analytics/{institute_id}")
 def attendance_analytics(institute_id: int, db: Session = Depends(get_db),
                          user: User = Depends(get_current_user)):

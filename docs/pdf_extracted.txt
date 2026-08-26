@@ -1,0 +1,151 @@
+=== SLIDE 1 ===
+TITLE PAGE
+SMART INDIA HACKATHON 2026
+• Problem Statement ID - 26095
+• Problem Statement Title- Smart Real-Time                             
+Monitoring & Inspection Mobile App 
+• Title- DRISHTI
+• Name- Team Cortex
+
+
+=== SLIDE 2 ===
+PROPOSED SOLUTION
+           DRISHTI
+2@SIH Idea submission- Template
+MoSJE Oversight & Web Dashboard 
+Define Policy, Monitor
+Central Al Hub & Automation
+Data Process, Random Assign
+HOW IT ADDRESSES THE PROBLEM
+Eliminates Fake Reporting 
+Tamper-proof Data
+Prevents Collusion 
+Random Assignments
+Overcomes Bottlenecks
+Efficient Scalability
+Automates Compliance 
+24/7 AI Auditing
+INNOVATION & UNIQUENESS
+Lightweight Al
+Efficient, Low-Bandwidth Vision
+Zero-Trust Evidence 
+Hardware-Verified Data
+Unified Ecosystem Centralized 
+Monitoring Platform
+Analytics & Insights Detect 
+Anomalies, Verify Attendance
+Field App & Live Feeds
+Capture Geo- Evidence, Live VC
+
+=== SLIDE 3 ===
+TECHNICAL APPROACH
+3@SIH Idea submission- Template
+METHODOLOGY & FLOW 
+
+
+=== SLIDE 4 ===
+        FEASIBILITY & VIABILITY
+4@SIH Idea submission- Template
+
+
+=== SLIDE 5 ===
+MULTIDISCIPLINARY REQUIREMENTS
+5@SIH Idea submission- Template
+Part of the Problem Statement 
+requiring other core branch support 
+Branch Problem solution 
+Live CCTV feed integration & 
+camera/IoT hardware compatibility 
+across institute sites 
+Electronics & Communication 
+Engineering (ECE) 
+ECE support to standardize 
+camera/IoT interfacing 
+(ONVIF/RTSP protocol compliance), 
+handle video signal processing, and 
+manage hardware-software 
+integration at edge devices 
+Power backup for CCTV/IoT devices 
+at institute & NGO sites 
+Electrical & Electronics 
+Engineering (EEE) 
+Design backup power solutions 
+(battery/solar) to keep cameras and 
+sensors operational during outages 
+Real-time video streaming & random 
+VC connectivity in low-network/rural 
+areas 
+Electronics & 
+Telecommunication 
+Engineering (ETE) 
+Optimize bandwidth usage, adaptive 
+bitrate streaming, and network 
+protocol/handoff (4G/5G/Wi-Fi) 
+design for reliable low-latency video 
+in poor-connectivity zones 
+
+=== SLIDE 6 ===
+IMPACT & BENEFITS
+6@SIH Idea submission- Template
+
+
+=== SLIDE 7 ===
+RESEARCH OF SIMILAR SOLUTIONS
+7@SIH Idea submission- Template
+Existing Solution Advantages Disadvantages
+PRAGATI (PMO/NIC, 
+national project-monitoring 
+platform)
+Enables real-time monitoring of major 
+government projects through PM-chaired reviews 
+with video conferencing, geo-spatial mapping, and 
+drone feeds; has monitored 3,300+ projects worth 
+over ₹85 lakh crore with a 90%+ issue-resolution 
+rate 
+Built for large infrastructure/ministry-level 
+projects reviewed monthly at the top, not 
+designed for continuous, ground-level 
+surveillance of individual institutes, NGOs, or 
+field staff; no live CCTV , no random inspection 
+assignment, no AI anomaly detection 
+PM POSHAN Automated 
+Monitoring System + state 
+inspection apps (e.g. WB's 
+MDM-Inspection app)
+Uses IVRS/SMS/mobile apps to collect real-time 
+data from schools with no internet dependency, 
+and dedicated inspection apps exist specifically to 
+identify irregularities at the school level
+Relies heavily on self-reported data from the 
+same institution being monitored, no 
+independent video verification; inspections 
+aren't AI-randomized, so visits remain 
+predictable and can be anticipated by staff
+SafetyCulture / iAuditor (now 
+Mitti), global commercial 
+inspection app
+Lets teams digitize inspection forms, schedule 
+recurring inspections, assign follow-up tasks, and 
+log real-time issues, with photo and video evidence 
+capture even offline; trusted by 70,000+ 
+organizations
+General-purpose commercial tool, not built for 
+government welfare-scheme oversight; GPS 
+tracking is still in early access and unreliable; 
+subscription-based licensing, no live CCTV feed 
+or surprise-VC capability, inspections scheduled 
+by managers rather than randomized
+
+=== SLIDE 8 ===
+8@SIH Idea submission- Template
+REFERENCES & RESEARCH — DRISHTI
+https://socialjustice.gov.in/ 
+https://socialjustice.gov.in/schemes 
+https://digitalindia.gov.in/ 
+https://uidai.gov.in/ 
+https://socialjustice.gov.in/ 
+https://docs.ultralytics.com/ 
+https://webrtc.org/ 
+https://postgresql.org/docs 
+https://docs.opencv.org/ 
+

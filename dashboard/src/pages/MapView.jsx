@@ -23,6 +23,8 @@ export default function MapView({ user }) {
   const [institutes, setInstitutes] = useState([]);
   const [selected, setSelected] = useState(null);   // clicked institute
   const [attendance, setAttendance] = useState([]); // its 30-day series
+  const [factors, setFactors] = useState([]);       // WHY the risk is raised
+  const [riskHint, setRiskHint] = useState(null);
   const [message, setMessage] = useState("");
   const [fDistrict, setFDistrict] = useState("All");
   const [fScheme, setFScheme] = useState("All");
@@ -48,6 +50,15 @@ export default function MapView({ user }) {
   async function openInstitute(inst) {
     setSelected(inst);
     setAttendance(await api(`/attendance/analytics/${inst.id}`));
+    // explain the risk score
+    try {
+      const bd = await api(`/institutes/${inst.id}/risk-breakdown`);
+      setFactors(bd.factors || []);
+      setRiskHint(bd.hint);
+    } catch {
+      setFactors([]);
+      setRiskHint(null);
+    }
   }
 
   async function assignRandom() {
@@ -132,6 +143,24 @@ export default function MapView({ user }) {
                 (selected.risk_score >= 70 ? "high" : selected.risk_score >= 40 ? "mid" : "low")}>
               Risk Score: {selected.risk_score}/100
             </div>
+
+            {/* ---------- WHY is the risk raised? ---------- */}
+            {factors.length > 0 ? (
+              <div className="risk-why">
+                <b>Why this score?</b>
+                {factors.map((f) => (
+                  <div key={f.reason} className="risk-factor">
+                    <span>{f.icon} {f.reason}</span>
+                    <b>+{f.points}</b>
+                  </div>
+                ))}
+                {riskHint && <small className="muted">💡 {riskHint}</small>}
+              </div>
+            ) : (
+              <div className="risk-why ok">
+                ✅ No open issues — baseline score
+              </div>
+            )}
 
             {/* ---------- inspector context for this institute ---------- */}
             {user.role === "inspector" && (() => {
