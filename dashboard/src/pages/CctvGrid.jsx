@@ -1,13 +1,35 @@
 // DRISHTI - Live CCTV Feed Grid
-// Plays the stream URLs served by the backend using hls.js.
-// Tile 4 is a placeholder for a DroidCam phone acting as an on-site IP camera:
-//   1. Install "DroidCam" on any phone (free)
-//   2. Note its WiFi URL, e.g. http://192.168.1.5:4747/video
-//   3. Paste it into the input below to watch a REAL live site feed.
+// 3 self-hosted loops in /dashboard/public/cctv (mp4) + 1 DroidCam tile
+// for a real live phone feed. The looping tiles carry a surveillance
+// overlay: pulsing REC dot, ticking timestamp, scanline + vignette.
+// If a stream fails, the tile shows a clean "Offline" placeholder.
 
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import { api } from "../api.js";
+
+const isRelative = (u) => typeof u === "string" && u.startsWith("/");
+
+function LoopingTile({ url }) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <div className="cctv-placeholder">
+        <p>⚠ Stream Offline</p>
+        <small>The camera feed could not be reached.</small>
+      </div>
+    );
+  }
+  return (
+    <video
+      src={url}
+      autoPlay muted loop playsInline controls
+      className="cctv-video"
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 function HlsPlayer({ url }) {
   const ref = useRef(null);
@@ -20,7 +42,6 @@ function HlsPlayer({ url }) {
     let hls;
     if (Hls.isSupported()) {
       hls = new Hls({ manifestLoadingTimeOut: 8000, levelLoadingTimeOut: 8000 });
-      // QA fix #002: any fatal HLS error -> graceful "offline" tile
       hls.on(Hls.Events.ERROR, (_evt, data) => {
         if (data.fatal) setFailed(true);
       });
@@ -40,7 +61,6 @@ function HlsPlayer({ url }) {
       </div>
     );
   }
-
   return (
     <video
       ref={ref}
@@ -48,6 +68,25 @@ function HlsPlayer({ url }) {
       className="cctv-video"
       onError={() => setFailed(true)}
     />
+  );
+}
+
+function SurveillanceOverlay({ id, label }) {
+  // Ticking live timestamp — proves the feed is "live" on stage
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <>
+      <div className="cctv-label">
+        <span className="live-dot" /> REC · {now.toLocaleTimeString("en-IN")}
+      </div>
+      <div className="cctv-corner cam-id">CAM&nbsp;0{id}&nbsp;·&nbsp;{label}</div>
+      <div className="cctv-corner cam-tc">DRISHTI&nbsp;CCTV</div>
+      <div className="cctv-scanlines" />
+    </>
   );
 }
 
@@ -64,32 +103,44 @@ export default function CctvGrid() {
       <div className="toolbar">
         <h2>📹 Live CCTV Surveillance</h2>
         <span className="muted">
-          Simulated institute feeds + your own phone as a real IP camera
+          3 self-hosted institute feeds + your phone as a real IP camera
         </span>
       </div>
 
       <div className="cctv-grid">
         {streams.map((s) => (
           <div key={s.id} className="cctv-tile">
-            <div className="cctv-label">
-              <span className="live-dot" /> {s.label}
-            </div>
             {s.url === "droidcam" ? (
-              droidUrl ? (
-                <img src={droidUrl} alt="DroidCam live" className="cctv-video" />
-              ) : (
-                <div className="cctv-placeholder">
-                  <p>No phone camera connected.</p>
-                  <input
-                    placeholder="http://192.168.x.x:4747/video"
-                    value={droidUrl}
-                    onChange={(e) => setDroidUrl(e.target.value)}
-                  />
-                  <small>Paste your DroidCam URL above</small>
+              <>
+                <div className="cctv-label">
+                  <span className="live-dot" /> {s.label}
                 </div>
-              )
+                {droidUrl ? (
+                  <img src={droidUrl} alt="DroidCam live" className="cctv-video" />
+                ) : (
+                  <div className="cctv-placeholder">
+                    <p>No phone camera connected.</p>
+                    <input
+                      placeholder="http://192.168.x.x:4747/video"
+                      value={droidUrl}
+                      onChange={(e) => setDroidUrl(e.target.value)}
+                    />
+                    <small>Install DroidCam on any phone and paste the URL above</small>
+                  </div>
+                )}
+              </>
+            ) : isRelative(s.url) ? (
+              <>
+                <LoopingTile url={s.url} />
+                <SurveillanceOverlay id={s.id} label={s.label} />
+              </>
             ) : (
-              <HlsPlayer url={s.url} />
+              <>
+                <HlsPlayer url={s.url} />
+                <div className="cctv-label">
+                  <span className="live-dot" /> {s.label}
+                </div>
+              </>
             )}
           </div>
         ))}

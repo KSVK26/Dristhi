@@ -202,14 +202,15 @@ def attendance_analytics(institute_id: int, db: Session = Depends(get_db),
 
 
 CCTV_STREAMS = [
-    # Free public HLS test streams simulate real RTSP/IP-camera feeds.
-    # (QA fix #002: only use streams verified live — Apple CDN + Mux)
-    {"id": 1, "label": "Institute 1 – Main Hall",
-     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8"},
-    {"id": 2, "label": "Institute 2 – Classroom A",
-     "url": "https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8"},
-    {"id": 3, "label": "Institute 3 – Entrance Gate",
-     "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"},
+    # Demo: 3 self-hosted loops under dashboard/public/cctv (committed
+    # to the repo) so they can never die mid-demo. Frontend detects a
+    # relative URL and plays with plain <video loop muted>, no HLS.
+    {"id": 1, "label": "Institute 1 – Main Hall (students)",
+     "url": "/cctv/cam1-classroom.mp4"},
+    {"id": 2, "label": "Institute 2 – Hallway",
+     "url": "/cctv/cam2-hallway.mp4"},
+    {"id": 3, "label": "Institute 3 – Corridor",
+     "url": "/cctv/cam3-corridor.mp4"},
     {"id": 4, "label": "LIVE SITE CAMERA (DroidCam phone)",
      "url": "droidcam"},   # dashboard shows instructions for this tile
 ]

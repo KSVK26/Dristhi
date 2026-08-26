@@ -65,21 +65,19 @@ real GPS, a real camera, and real notifications. Written for complete beginners.
 
 ### M1.2 — Point the app at YOUR PC
 
-1. Open the file `D:\SIH26095\mobile\drishti_app\lib\main.dart` in any editor
-   (even Notepad).
-2. Around line 27, find:
-   ```dart
-   String kApiBase =
-       kIsWeb ? 'http://localhost:8000' : 'http://10.0.2.2:8000';
-   ```
-3. Change the second URL to **your PC's WiFi IP** (find it: open PowerShell, run
-   `ipconfig`, look for **IPv4 Address** under your WiFi adapter, e.g.
-   `192.168.1.10`). The line becomes:
-   ```dart
-   String kApiBase =
-       kIsWeb ? 'http://localhost:8000' : 'http://192.168.1.10:8000';
-   ```
-   (Testers can also change it on the login screen — this default just saves them typing.)
+There are now **two build modes** and the right one depends on where the
+app will run.
+
+| Where the app runs | Command |
+|---|---|
+| Local browser (`http://localhost:5174`)  → backend on your PC | `flutter build web --release` (no flag — defaults to `http://localhost:8000`) |
+| Physical Android phone on same WiFi      | `flutter build web --dart-define=DRISHTI_API=http://YOUR_PC_IP:8000` |
+| Hosted static site (Render, Netlify)     | `flutter build web --release --dart-define=DRISHTI_API=https://YOUR_BACKEND` |
+
+The "Server address" box on the login screen is still available for one-off
+overrides on **physical phones only** — on web builds it is reset to the
+baked-in URL on every reload so a stale `localhost` can never stick. Use
+the "↻ Reset to default" link if you ever need to clear the cached value.
 
 ### M1.3 — Build the APK
 

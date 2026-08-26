@@ -37,12 +37,19 @@ String kApiBase = kIsWeb ? kHostedApiBase : 'http://10.0.2.2:8000';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // restore a previously-saved server address (physical phones)
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString('server_url');
-    if (saved != null && saved.isNotEmpty) kApiBase = saved;
-  } catch (_) {}
+  // On a hosted (web) build the backend URL is baked in at build time via
+  // --dart-define=DRISHTI_API=... and is the source of truth. We deliberately
+  // ignore any locally-saved override on web so users can't accidentally
+  // point a deployed build at localhost. Physical phones (non-web) still
+  // benefit from the override since they can't carry a baked-in URL that
+  // works on every network.
+  if (!kIsWeb) {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString('server_url');
+      if (saved != null && saved.isNotEmpty) kApiBase = saved;
+    } catch (_) {}
+  }
   runApp(const DrishtiApp());
 }
 
@@ -75,6 +82,19 @@ class _LoginScreenState extends State<LoginScreen> {
   final _serverCtrl = TextEditingController(text: kApiBase);
   bool _busy = false;
   String? _error;
+
+  Future<void> _resetServer() async {
+    // Reset to the build-time default (DRISHTI_API on web, 10.0.2.2 on Android)
+    // and clear any stale persisted override.
+    setState(() {
+      kApiBase = kIsWeb ? kHostedApiBase : 'http://10.0.2.2:8000';
+      _serverCtrl.text = kApiBase;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('server_url');
+    } catch (_) {}
+  }
 
   Future<void> _login() async {
     setState(() { _busy = true; _error = null; });
@@ -164,6 +184,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: 'Server address (PC running the backend)',
                       hintText: 'http://192.168.1.10:8000',
                       border: OutlineInputBorder(),
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.refresh, size: 14),
+                      label: const Text('Reset to default', style: TextStyle(fontSize: 12)),
+                      onPressed: _busy ? null : _resetServer,
                     ),
                   ),
                   if (_error != null)

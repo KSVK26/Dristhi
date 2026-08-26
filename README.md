@@ -92,7 +92,8 @@ Open http://localhost:5174 — login `ravi / inspector123`
 flutter run                       # emulator or USB phone
 ```
 - Android emulator: backend URL is already `http://10.0.2.2:8000`
-- Physical phone: edit `kApiBase` in `lib/main.dart` to your PC's WiFi IP
+- Physical phone: edit `kApiBase` in `lib/main.dart` to your PC's WiFi IP, or paste it into the "Server address" box on the login screen
+- **Hosted build** (Render, Netlify): rebuild with `--dart-define=DRISHTI_API=https://your-backend` — the URL is then baked in and overrides any stale local value on the web app
 
 ## 🎬 2-minute demo script
 
