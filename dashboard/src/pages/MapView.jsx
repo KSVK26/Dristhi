@@ -93,10 +93,10 @@ export default function MapView({ user }) {
           <button className="btn primary" onClick={runAI}>🤖 Run AI Anomaly Scan</button>
           <div className="map-filters">
             <select value={fDistrict} onChange={(e) => setFDistrict(e.target.value)}>
-              {districts.map((d) => <option key={d}>{d === "All" ? "All districts" : d}</option>)}
+              {districts.map((d) => <option key={d} value={d}>{d === "All" ? "All districts" : d}</option>)}
             </select>
             <select value={fScheme} onChange={(e) => setFScheme(e.target.value)}>
-              {schemes.map((s) => <option key={s}>{s === "All" ? "All schemes" : s}</option>)}
+              {schemes.map((s) => <option key={s} value={s}>{s === "All" ? "All schemes" : s}</option>)}
             </select>
           </div>
           <span className="muted">

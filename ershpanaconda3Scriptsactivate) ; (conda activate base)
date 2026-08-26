@@ -1,0 +1,1 @@
+[33m6c0ffe3[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m QA fixes: web-safe photo upload (#003), reliable CCTV streams + offline fallback (#002), risk-score regression test (#004), Google Maps link -> lat/lng parser for Add Institute, 20s live task sync (B16), UTF-8 test output
