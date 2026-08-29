@@ -63,6 +63,20 @@ pip install -r requirements.txt
 python seed.py                    # creates demo data
 python -m uvicorn main:app --reload --port 8000
 ```
+
+**Self-hosted `/docs` (no CDN).** The default FastAPI docs page loads
+`cdn.jsdelivr.net`, which Render's outbound network often can't reach,
+leaving a blank screen. To get the full Swagger UI:
+
+```bash
+python fetch_swagger.py            # one-time, vendored assets go to
+                                   # backend/static/swagger/ — no CDN
+```
+
+Without that step, `/docs` still works — it falls back to a plain HTML
+list of every endpoint (no JS, no Try-It-Out button), so the API is
+always inspectable even if the bundle download fails.
+
 Interactive API docs: http://localhost:8000/docs
 
 > 🌐 **Hosting:** set `DATABASE_URL` to a PostgreSQL URI (Supabase/Neon) and

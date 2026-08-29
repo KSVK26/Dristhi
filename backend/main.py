@@ -52,6 +52,11 @@ app = FastAPI(
     title="DRISHTI API",
     description="Smart Real-Time Monitoring & Inspection platform for DoSJE (SIH 26095)",
     version="0.2.0",
+    # SECURITY/HARDENING: Swagger UI is served from a self-hosted bundle
+    # under /static/swagger/ (NOT from cdn.jsdelivr.net) so the docs UI
+    # works even when Render's outbound network can't reach third-party CDNs.
+    docs_url="/docs-old",       # legacy path kept disabled to avoid clash
+    redoc_url="/redoc-old",     # (ReDoc also defaults to cdn.jsdelivr.net)
 )
 
 # Shared HTTPBearer for the few endpoints (refresh, etc.) that read the
@@ -91,6 +96,104 @@ def _validate_photo_field(field_bytes: bytes, declared_filename: str) -> str:
 
 def _sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+# ---- self-hosted Swagger UI (no CDN) ---------------------------------
+import os
+from fastapi.responses import HTMLResponse, FileResponse
+
+STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+SWAGGER_DIR = os.path.join(STATIC_DIR, "swagger")
+SWAGGER_HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{title} - API docs</title>
+  <link rel="stylesheet" href="/static/swagger/swagger-ui.css" />
+  <link rel="icon" href="data:," />
+  <noscript>
+    <style>
+      body {{ font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; color: #222; }}
+      h1 {{ color: #0d2137; }}
+      a {{ color: #1565c0; }}
+      table {{ border-collapse: collapse; width: 100%; margin-top: 1rem; }}
+      th, td {{ border: 1px solid #ddd; padding: 6px 10px; text-align: left; font-size: 14px; }}
+      th {{ background: #f4f6fa; }}
+      code {{ background: #f4f6fa; padding: 2px 6px; border-radius: 3px; font-size: 13px; }}
+    </style>
+  </noscript>
+</head>
+<body>
+  <noscript>
+    <h1>{title}</h1>
+    <p>Swagger UI needs JavaScript. Here is a quick reference:</p>
+    <ul>
+      <li><a href="/openapi.json">/openapi.json</a> &mdash; the full OpenAPI spec (JSON)</li>
+      <li><a href="/docs">/docs</a> &mdash; this page (try enabling JavaScript)</li>
+      <li><a href="/">/</a> &mdash; the API root</li>
+    </ul>
+    <h2>Demo accounts</h2>
+    <table>
+      <tr><th>Username</th><th>Password</th><th>Role</th></tr>
+      <tr><td>admin</td><td>admin123</td><td>Department official</td></tr>
+      <tr><td>ravi / priya / arjun</td><td>inspector123</td><td>PMU field inspectors</td></tr>
+      <tr><td>ngostaff</td><td>institute123</td><td>NGO staff</td></tr>
+    </table>
+    <p>Get a token with <code>POST /login</code> then click &ldquo;Authorize&rdquo; in Swagger UI to test protected endpoints.</p>
+  </noscript>
+  <div id="swagger-ui"></div>
+  <script src="/static/swagger/swagger-ui-bundle.js"></script>
+  <script>
+    window.onload = () => {{
+      window.ui = SwaggerUIBundle({{
+        url: "/openapi.json",
+        dom_id: "#swagger-ui",
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIBundle.SwaggerUIStandalonePreset
+        ],
+        plugins: [SwaggerUIBundle.plugins.DownloadUrl],
+        layout: "StandaloneLayout",
+        docExpansion: "none",
+        persistAuthorization: true
+      }});
+    }};
+  </script>
+</body>
+</html>
+"""
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui():
+    """Self-hosted Swagger UI - JS/CSS served from backend/static/swagger/.
+    The default FastAPI docs page uses cdn.jsdelivr.net which Render's
+    outbound network often can't reach, leaving the user with a blank
+    page. This route ships the same UI from inside the repo."""
+    if not os.path.isdir(SWAGGER_DIR):
+        # Fallback: pure-HTML no-JS page so the docs are at least readable
+        openapi = app.openapi()
+        rows = []
+        for path, ops in openapi.get("paths", {}).items():
+            for method, op in ops.items():
+                rows.append((method.upper(), path,
+                             op.get("summary") or op.get("description") or ""))
+        body = ['<table><tr><th>Method</th><th>Path</th><th>Summary</th></tr>']
+        for m, p, s in rows:
+            body.append(f'<tr><td><code>{m}</code></td>'
+                        f'<td><code>{p}</code></td>'
+                        f'<td>{s}</td></tr>')
+        body.append('</table>')
+        return HTMLResponse(
+            "<h1>DRISHTI API</h1>"
+            "<p>(Swagger UI assets not vendored yet. Showing plain list. "
+            "Run <code>fetch_swagger.bat</code> on the server to enable the "
+            "interactive UI.)</p>"
+            '<p>Get a token: <code>POST /login</code> with '
+            '<code>{"username":"admin","password":"admin123"}</code></p>'
+            + "".join(body)
+        )
+    return HTMLResponse(SWAGGER_HTML.format(title=app.title))
 
 
 # ---- security middleware -----------------------------------------------
@@ -136,6 +239,9 @@ app.add_middleware(
 # Serve uploaded evidence photos at http://localhost:8000/uploads/<file>
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+# Serve self-hosted Swagger UI assets (vendor under backend/static/swagger/)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 def _ensure_schema_columns():

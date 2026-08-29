@@ -3,7 +3,10 @@ __pycache__/
 *.pyc
 .venv/
 backend/.venv/
-backend/uploads/
+backend/uploads/             # evidence photos (ephemeral on free Render)
+# NOTE: backend/static/ is COMMITTED (it holds the vendored Swagger UI
+# assets, no CDN dependency). The .gitignore above only excludes
+# uploads/ — static/ files will be tracked on git add.
 *.db
 
 # Node / React
