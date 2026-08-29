@@ -108,10 +108,20 @@ flutter run                       # emulator or USB phone
 9. **📋 Reports → 📄 Official Report** → auto-generated document with photos, GPS, AI verdict & audit seed → ⬇ Save as PDF live on stage
 10. **Reports → Export CSV** → transparency register download
 
+## 🛡️ Security (the 5-layer defense)
+
+> *"Field: signed-only app, GPS-stamped, AI face-check. Network: TLS 1.3,
+> Jitsi E2E, JWT in headers. Server: bcrypt + RBAC + rate-limit + security
+> headers. Storage: encrypted + backed up + append-only audit. Audit: every
+> action recorded with user + time + location + fairness seed."*
+
+Full reference: [`docs/SECURITY.md`](docs/SECURITY.md).
+Pre-demo verification: [`docs/SECURITY_QA.md`](docs/SECURITY_QA.md).
+
 ## 🧪 Tests
 
 ```bash
-cd backend && .venv\Scripts\python test_api.py      # full API flow (8 steps)
+cd backend && .venv\Scripts\python test_api.py      # full API flow (12 steps including security)
 cd mobile/drishti_app && flutter analyze && flutter test
 ```
 
