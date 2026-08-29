@@ -1,0 +1,9 @@
+﻿git : To https://github.com/KSVK26/Dristhi.git
+At D:\Projects\SIH\SIH26095\push.ps1:1 char:1
++ git push origin main 2>&1 | Out-File -Encoding utf8 D:\Projects\SIH\S ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (To https://github.com/KSVK26/Dristhi.git:Stri 
+   ng) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+   c986d2a..a502cfd  main -> main
