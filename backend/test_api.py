@@ -72,15 +72,19 @@ def main():
 
     print("== 3b. RISK BREAKDOWN (why is the score raised?) ==")
     probe = institutes[0]
+    # The breakdown recomputes the score, so fetch the institute fresh AFTER
     r = client.get(f"/institutes/{probe['id']}/risk-breakdown", headers=ah)
     assert r.status_code == 200, r.text
     bd = r.json()
-    assert bd["score"] >= 0 and isinstance(bd["factors"], list)
+    fresh = next(i for i in client.get("/institutes", headers=ah).json() if i["id"] == probe["id"])
+    assert isinstance(bd["factors"], list)
     print(f"   {bd['name']}: score {bd['score']} from {len(bd['factors'])} factor(s)")
     for f in bd["factors"]:
         print(f"   • {f['icon']} {f['reason']} (+{f['points']}) — {f['detail']}")
-    # factors must explain the stored score exactly
-    assert bd["score"] == probe["risk_score"] or len(bd["factors"]) > 0
+    # factors must always explain the score exactly (breakdown also
+    # recomputes+persists, so the DB and the response are now in sync)
+    assert bd["score"] == fresh["risk_score"], \
+        f"breakdown score {bd['score']} != institute risk_score {fresh['risk_score']}"
 
     print("== 4. RANDOM INSPECTION ASSIGNMENT ==")
     target = next((i for i in institutes if i["risk_score"] >= 50), institutes[0])
@@ -158,6 +162,85 @@ def main():
           f"{score_after} (after resolving {len(open_alerts)} open alert(s))")
     assert score_after < score_before, \
         "risk score did not drop after resolving alerts!"
+
+    print("== 9. SECURITY HEADERS ==")
+    r = client.get("/", headers=ah)
+    for h in ("X-Frame-Options", "X-Content-Type-Options",
+              "Referrer-Policy", "Strict-Transport-Security",
+              "Content-Security-Policy"):
+        assert h in r.headers, f"Missing security header: {h}"
+    print(f"   all 5 security headers present (HSTS, CSP, XFO, XCTO, RP)")
+
+    print("== 10. LOGIN RATE LIMIT (5/min, then 60s lockout) ==")
+    for i in range(6):
+        r = client.post("/login", json={"username": "admin", "password": "WRONG"})
+        if r.status_code == 429:
+            print(f"   locked at attempt #{i+1}: {r.json()['detail'][:60]}")
+            break
+    else:
+        raise AssertionError("Rate limit did not trigger after 6 failed attempts")
+    # clear the lock so the rest of the test suite keeps working
+    import auth as _auth
+    with _auth._lock_mu:
+        _auth._locks.clear()
+        for q in _auth._attempts.values():
+            q.clear()
+
+    print("== 11. PHOTO INTEGRITY (tampered upload rejected) ==")
+    my = client.get("/inspections/my", headers=ih).json()
+    if my:
+        t = my[0]
+        # Use a real JPEG so the MIME sniffer passes
+        from hashlib import sha256
+        photo = make_photo(with_face_like_content=True)
+        real = sha256(photo).hexdigest()
+        bogus = "0" * 64
+        r = client.post("/reports",
+            headers=ih,
+            data={"inspection_id": str(t["inspection_id"]),
+                  "geo_lat": "28.61", "geo_lng": "77.20",
+                  "checklist": "{}",
+                  "photo_sha256": bogus},   # wrong hash on purpose
+            files={"photo": ("e.jpg", photo, "image/jpeg")},
+        )
+        assert r.status_code == 400, r.text
+        assert "integrity" in r.json()["detail"].lower(), r.json()
+        print(f"   tampered photo rejected: {r.json()['detail'][:60]}")
+        if t["status"] != "completed":
+            r2 = client.post("/reports",
+                headers=ih,
+                data={"inspection_id": str(t["inspection_id"]),
+                      "geo_lat": "28.61", "geo_lng": "77.20",
+                      "checklist": "{}",
+                      "photo_sha256": real,
+                      "captured_at": "2026-08-29T14:00:00Z",
+                      "device_id": "test-device-001"},
+                files={"photo": ("e.jpg", photo, "image/jpeg")},
+            )
+            assert r2.status_code == 200, r2.text
+            data = r2.json()
+            assert data.get("ai_flags") is not None
+            print(f"   correct hash accepted; ai_flags={data['ai_flags']}; "
+                  f"photo_sha256 stored in DB")
+        else:
+            print("   task already done, integrity re-test skipped")
+    else:
+        print("   no inspector task to test against, skipped")
+
+    print("== 12. JWT EXPIRY ==")
+    short = client.post("/login",
+                        json={"username": "admin", "password": "admin123"},
+                        headers={})
+    import jwt as _jwt, time as _time
+    payload = _jwt.decode(short.json()["token"], _auth.SECRET_KEY, algorithms=["HS256"])
+    assert "exp" in payload, "token has no exp claim"
+    assert payload["exp"] > _time.time(), "exp is already in the past"
+    # Manually craft an expired token to prove the 401
+    expired = {**payload, "exp": _time.time() - 1}
+    bad = _jwt.encode(expired, _auth.SECRET_KEY, algorithm="HS256")
+    r = client.get("/institutes", headers={"Authorization": f"Bearer {bad}"})
+    assert r.status_code == 401, r.text
+    print(f"   exp claim enforced; expired token -> {r.json()['detail']}")
 
     print("ALL TESTS PASSED ✔")
 

@@ -18,33 +18,119 @@ Endpoint map (grouped by the MONITOR -> DETECT -> VERIFY -> REPORT -> ACT flow):
 import json
 import os
 import random
+import re
+import secrets
 import shutil
+import time
+import hashlib
+import io
+import struct
 
 from datetime import date, datetime, timedelta
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 import ai_engine
-from auth import create_access_token, get_current_user, require_role, verify_password
+from auth import (
+    create_access_token,
+    decode_token,
+    get_current_user,
+    login_rate_limit_check,
+    login_rate_limit_record,
+    require_role,
+    verify_password,
+)
 from database import engine, get_db
 from models import Alert, AttendanceLog, Inspection, Institute, Report, User
 
 app = FastAPI(
     title="DRISHTI API",
     description="Smart Real-Time Monitoring & Inspection platform for DoSJE (SIH 26095)",
-    version="0.1.0",
+    version="0.2.0",
 )
 
-# Allow the React dashboard + Flutter app (running on other ports) to call us
+# Shared HTTPBearer for the few endpoints (refresh, etc.) that read the
+# token manually rather than via get_current_user.
+bearer_scheme = HTTPBearer(auto_error=False)
+
+# ---- upload validation helpers ----------------------------------------
+MAX_PHOTO_BYTES = 5 * 1024 * 1024   # 5 MB per photo
+
+def _is_jpeg(data: bytes) -> bool:
+    return data[:3] == b"\xff\xd8\xff"
+
+def _is_png(data: bytes) -> bool:
+    return data[:8] == b"\x89PNG\r\n\x1a\n"
+
+def _is_webp(data: bytes) -> bool:
+    return data[:4] == b"RIFF" and data[8:12] == b"WEBP"
+
+def sniff_image(data: bytes) -> str:
+    """Return the sniffed image MIME, or '' if the bytes are not a real image."""
+    if _is_jpeg(data): return "image/jpeg"
+    if _is_png(data):  return "image/png"
+    if _is_webp(data): return "image/webp"
+    return ""
+
+def _validate_photo_field(field_bytes: bytes, declared_filename: str) -> str:
+    """Reject empty, oversized, or non-image uploads. Return sniffed mime."""
+    if not field_bytes:
+        raise HTTPException(400, "Photo is empty")
+    if len(field_bytes) > MAX_PHOTO_BYTES:
+        raise HTTPException(413, f"Photo exceeds {MAX_PHOTO_BYTES//1024//1024} MB limit")
+    sniffed = sniff_image(field_bytes)
+    if not sniffed:
+        raise HTTPException(400, "Uploaded file is not a valid image "
+                                 "(only JPEG / PNG / WebP accepted)")
+    return sniffed
+
+def _sha256_hex(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+# ---- security middleware -----------------------------------------------
+async def add_security_headers(request, call_next):
+    """Add baseline security headers to every response."""
+    resp = await call_next(request)
+    resp.headers.setdefault("X-Frame-Options", "DENY")
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("Referrer-Policy", "no-referrer")
+    # HSTS: only meaningful over HTTPS; browsers will simply ignore on http://
+    resp.headers.setdefault(
+        "Strict-Transport-Security", "max-age=63072000; includeSubDomains"
+    )
+    # Content-Security-Policy: API responses don't render HTML, so the
+    # restrictive default-src is fine.
+    resp.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'none'; frame-ancestors 'none'",
+    )
+    return resp
+
+
+app.middleware("http")(add_security_headers)
+
+
+# CORS: env-driven allowlist. Default = "*" for local dev; set CORS_ORIGINS
+# in production to your real origins (e.g. "https://drishti-dashboard.onrender.com").
+_cors_origins = os.environ.get(
+    "CORS_ORIGINS",
+    "http://localhost:5173,http://localhost:5174,http://localhost:8000,http://10.0.2.2:8000",
+).split(",")
+if "*" in _cors_origins or not any(o.strip() for o in _cors_origins):
+    _cors_origins = ["*"]  # dev mode
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # demo only — restrict in production!
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
+    max_age=600,
 )
 
 # Serve uploaded evidence photos at http://localhost:8000/uploads/<file>
@@ -61,6 +147,10 @@ def _ensure_schema_columns():
     from sqlalchemy import text
     statements = [
         "ALTER TABLE reports ADD COLUMN question_photos_json TEXT DEFAULT '{}'",
+        # SECURITY hardening (added in v0.2.0): in-transit photo integrity
+        "ALTER TABLE reports ADD COLUMN photo_sha256 VARCHAR(64)",
+        "ALTER TABLE reports ADD COLUMN captured_at VARCHAR(40)",
+        "ALTER TABLE reports ADD COLUMN device_id VARCHAR(64)",
     ]
     with engine.begin() as conn:
         for stmt in statements:
@@ -103,8 +193,11 @@ class InstituteCreate(BaseModel):
 @app.post("/login")
 def login(body: LoginRequest, db: Session = Depends(get_db)):
     """All three apps (dashboard, Flutter app) log in here and get a JWT."""
+    # SECURITY: rate-limit per username (5 / minute, 60s lockout beyond that)
+    login_rate_limit_check(body.username)
     user = db.query(User).filter(User.username == body.username).first()
     if not user or not verify_password(body.password, user.password_hash):
+        login_rate_limit_record(body.username)
         raise HTTPException(status_code=401, detail="Wrong username or password")
     return {
         "token": create_access_token(user),
@@ -112,6 +205,22 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
         "name": user.name,
         "username": user.username,
     }
+
+
+@app.post("/auth/refresh")
+def refresh_token(creds: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+                  db: Session = Depends(get_db)):
+    """
+    Exchange an old (possibly just-expired) JWT for a fresh one.
+    Accepts tokens that expired up to JWT_REFRESH_GRACE_SECONDS ago.
+    """
+    if creds is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    payload = decode_token(creds.credentials, allow_grace=True)
+    user = db.get(User, int(payload["sub"]))
+    if user is None:
+        raise HTTPException(status_code=401, detail="User no longer exists")
+    return {"token": create_access_token(user), "role": user.role}
 
 
 @app.get("/me")
@@ -168,11 +277,16 @@ def institute_risk_breakdown(institute_id: int, db: Session = Depends(get_db),
     """
     Explain WHY an institute's risk score is what it is:
     returns the score plus each contributing factor (alerts,
-    incomplete inspections, weak attendance).
+    incomplete inspections, weak attendance). Also recomputes and
+    persists the score so the returned number always matches the
+    stored institute.risk_score.
     """
     inst = db.get(Institute, institute_id)
     if not inst:
         raise HTTPException(404, "Institute not found")
+    # Recompute + persist so the returned score matches DB
+    ai_engine.compute_risk_score(db, inst)
+    db.commit()
     score, factors = ai_engine.risk_factors(db, inst)
     return {
         "institute_id": institute_id,
@@ -513,12 +627,21 @@ async def submit_report(
     q2_photo: UploadFile = File(None),
     q3_photo: UploadFile = File(None),
     q4_photo: UploadFile = File(None),
+    # SECURITY: in-transit integrity manifest
+    photo_sha256: str = Form(None),       # client-computed SHA-256 hex
+    captured_at:  str = Form(None),       # ISO 8601 device capture time
+    device_id:    str = Form(None),       # stable per-install UUID
     db: Session = Depends(get_db),
     user: User = Depends(require_role("inspector")),
 ):
     """
     Field-app submission: GPS + photo + checklist.
     AI runs face detection on the photo; zero faces => possible_proxy flag.
+
+    SECURITY: the client computes SHA-256 of the photo bytes and sends it
+    along with a captured_at timestamp and a per-install device_id. The
+    server re-hashes the photo and refuses to accept the report if the
+    hashes don't match (catches in-flight tampering).
     """
     inspection = db.get(Inspection, inspection_id)
     if not inspection:
@@ -526,10 +649,24 @@ async def submit_report(
     if inspection.inspector_id != user.id:
         raise HTTPException(403, "This inspection belongs to another inspector")
 
-    # Read the uploaded photo ONCE — reused for both saving and AI analysis
+    # Read the uploaded photo ONCE — reused for saving, hash, and AI analysis
     image_bytes = await photo.read()
+    _validate_photo_field(image_bytes, photo.filename or "photo.jpg")
 
-    ext = os.path.splitext(photo.filename or "photo.jpg")[1] or ".jpg"
+    # SECURITY: reject in-flight tampered photos
+    if photo_sha256:
+        if not re.fullmatch(r"[0-9a-f]{64}", photo_sha256 or ""):
+            raise HTTPException(400, "photo_sha256 must be a 64-char hex string")
+        if _sha256_hex(image_bytes) != photo_sha256:
+            raise HTTPException(
+                400, "Photo integrity check failed (hash mismatch — "
+                     "the photo was modified between the device and the server)")
+
+    # Build a safe extension from the sniffed MIME (NOT from the filename —
+    # never trust client-provided extensions).
+    sniffed = sniff_image(image_bytes)
+    ext_map = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
+    ext = ext_map.get(sniffed, ".jpg")
     path = os.path.join("uploads", f"report_{inspection_id}_{user.id}{ext}")
     with open(path, "wb") as f:
         f.write(image_bytes)
@@ -540,11 +677,15 @@ async def submit_report(
     for idx, qfile in enumerate(question_files):
         if qfile is None or not qfile.filename:
             continue
-        qext = os.path.splitext(qfile.filename or "q.jpg")[1] or ".jpg"
+        qb = await qfile.read()
+        if not qb:
+            continue
+        _validate_photo_field(qb, qfile.filename)
+        qext = ext_map.get(sniff_image(qb), ".jpg")
         qpath = os.path.join(
             "uploads", f"report_{inspection_id}_{user.id}_q{idx}{qext}")
         with open(qpath, "wb") as f:
-            f.write(await qfile.read())
+            f.write(qb)
         question_photos[str(idx)] = "/" + qpath.replace("\\", "/")
 
     # ---- AI proxy check ----
@@ -562,6 +703,9 @@ async def submit_report(
         checklist_json=checklist,
         ai_flags=",".join(flags),
         question_photos_json=json.dumps(question_photos),
+        photo_sha256=_sha256_hex(image_bytes),
+        captured_at=(captured_at or "")[:40] or None,
+        device_id=(device_id or "")[:64] or None,
     )
     db.add(report)
 

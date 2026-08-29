@@ -97,6 +97,14 @@ class Report(Base):
     ai_flags = Column(String(300), default="")         # e.g. 'possible_proxy', 'geo_mismatch'
     # optional per-checklist-item evidence: {"0": "/uploads/..._q0.jpg", ...}
     question_photos_json = Column(Text, default="{}")
+    # SECURITY: in-transit integrity — hash of the photo bytes computed
+    # on the client, re-verified server-side; SHA-256 hex (64 chars).
+    photo_sha256 = Column(String(64), nullable=True)
+    # ISO-8601 timestamp the inspector captured the photo on-device.
+    captured_at = Column(String(40), nullable=True)
+    # Stable per-install device id; helps correlate submissions to a phone
+    # and detect anomalies (a stolen token + new device would show up here).
+    device_id = Column(String(64), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     inspection = relationship("Inspection", back_populates="reports")
